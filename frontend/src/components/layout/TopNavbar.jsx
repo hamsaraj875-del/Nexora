@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { ThemeToggle } from '../../shared/components/ThemeToggle';
 
 export const TopNavbar = ({ setMobileOpen, sidebarCollapsed, setSidebarCollapsed }) => {
   const { 
@@ -243,6 +244,9 @@ export const TopNavbar = ({ setMobileOpen, sidebarCollapsed, setSidebarCollapsed
               </div>
             )}
           </div>
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Quick Stats Chips (matching Flame / Coin / Plus pill in Image 1) */}
           <div className="hidden sm:flex items-center space-x-1.5 bg-[#151618] border border-[#232427] px-2 py-1 rounded-lg text-xs font-mono">

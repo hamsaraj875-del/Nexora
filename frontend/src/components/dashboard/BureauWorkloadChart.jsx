@@ -21,6 +21,7 @@ import {
   ArrowRightLeft,
   AlertTriangle
 } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 // Custom Interactive Dark Tooltip
 const CustomTooltip = ({ active, payload, label, dataMap }) => {
@@ -69,8 +70,44 @@ const CustomTooltip = ({ active, payload, label, dataMap }) => {
 };
 
 export const BureauWorkloadChart = ({ data = [], isLoading = false }) => {
+  const { isEarth } = useTheme();
   const [viewMode, setViewMode] = useState('stacked'); // 'stacked' | 'grouped' | 'rate'
   const [showTable, setShowTable] = useState(false);
+
+  const chartColors = useMemo(() => {
+    if (isEarth) {
+      return {
+        pending: '#71695F',
+        process: '#803D2D',
+        disposed: '#4A6741',
+        transferred: '#A66B2D',
+        escalated: '#A33D32',
+        active: '#803D2D',
+        rate: '#4A6741',
+        grid: '#DED5C8',
+        axis: '#DED5C8',
+        tick: '#71695F',
+        tooltipBg: '#FFFCF7',
+        tooltipBorder: '#DED5C8',
+        tooltipText: '#292621',
+      };
+    }
+    return {
+      pending: '#8A99B5',
+      process: '#6C7BFF',
+      disposed: '#19D3A2',
+      transferred: '#B07CFF',
+      escalated: '#FF4D79',
+      active: '#6C7BFF',
+      rate: '#00E676',
+      grid: '#1B1C20',
+      axis: '#232427',
+      tick: '#71717A',
+      tooltipBg: '#0F1011',
+      tooltipBorder: '#232427',
+      tooltipText: '#F4F4F5',
+    };
+  }, [isEarth]);
 
   // Map for fast tooltip lookups
   const dataMap = useMemo(() => {
@@ -286,16 +323,16 @@ export const BureauWorkloadChart = ({ data = [], isLoading = false }) => {
                   data={data}
                   margin={{ top: 10, right: 10, left: -20, bottom: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1B1C20" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                   <XAxis 
                     dataKey="code" 
-                    tick={{ fontSize: 11, fill: '#71717A', fontWeight: 500 }} 
-                    axisLine={{ stroke: '#232427' }} 
+                    tick={{ fontSize: 11, fill: chartColors.tick, fontWeight: 500 }} 
+                    axisLine={{ stroke: chartColors.axis }} 
                     tickLine={false}
                   />
                   <YAxis 
-                    tick={{ fontSize: 11, fill: '#71717A' }} 
-                    axisLine={{ stroke: '#232427' }} 
+                    tick={{ fontSize: 11, fill: chartColors.tick }} 
+                    axisLine={{ stroke: chartColors.axis }} 
                     tickLine={false}
                   />
                   <Tooltip
@@ -305,13 +342,13 @@ export const BureauWorkloadChart = ({ data = [], isLoading = false }) => {
                     verticalAlign="top" 
                     height={34} 
                     iconType="circle" 
-                    wrapperStyle={{ fontSize: '11px', paddingTop: '2px', color: '#A1A1AA' }} 
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '2px', color: chartColors.tick }} 
                   />
-                  <Bar dataKey="pending" name="Pending Triage" stackId="a" fill="#8A99B5" />
-                  <Bar dataKey="process" name="Under Process" stackId="a" fill="#6C7BFF" />
-                  <Bar dataKey="disposed" name="Disposed (Closed)" stackId="a" fill="#19D3A2" />
-                  <Bar dataKey="transferred" name="Transferred" stackId="a" fill="#B07CFF" />
-                  <Bar dataKey="escalated" name="Escalated" stackId="a" fill="#FF4D79" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="pending" name="Pending Triage" stackId="a" fill={chartColors.pending} />
+                  <Bar dataKey="process" name="Under Process" stackId="a" fill={chartColors.process} />
+                  <Bar dataKey="disposed" name="Disposed (Closed)" stackId="a" fill={chartColors.disposed} />
+                  <Bar dataKey="transferred" name="Transferred" stackId="a" fill={chartColors.transferred} />
+                  <Bar dataKey="escalated" name="Escalated" stackId="a" fill={chartColors.escalated} radius={[4, 4, 0, 0]} />
                 </BarChart>
               ) : viewMode === 'grouped' ? (
                 /* 2. Active vs Closed Comparison */
@@ -319,24 +356,24 @@ export const BureauWorkloadChart = ({ data = [], isLoading = false }) => {
                   data={comparisonData}
                   margin={{ top: 10, right: 10, left: -20, bottom: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1B1C20" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                   <XAxis 
                     dataKey="code" 
-                    tick={{ fontSize: 11, fill: '#71717A', fontWeight: 500 }} 
-                    axisLine={{ stroke: '#232427' }} 
+                    tick={{ fontSize: 11, fill: chartColors.tick, fontWeight: 500 }} 
+                    axisLine={{ stroke: chartColors.axis }} 
                     tickLine={false}
                   />
                   <YAxis 
-                    tick={{ fontSize: 11, fill: '#71717A' }} 
-                    axisLine={{ stroke: '#232427' }} 
+                    tick={{ fontSize: 11, fill: chartColors.tick }} 
+                    axisLine={{ stroke: chartColors.axis }} 
                     tickLine={false}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#0F1011',
-                      borderColor: '#232427',
+                      backgroundColor: chartColors.tooltipBg,
+                      borderColor: chartColors.tooltipBorder,
                       borderRadius: '12px',
-                      color: '#F4F4F5',
+                      color: chartColors.tooltipText,
                       fontSize: '12px',
                     }}
                   />
@@ -344,10 +381,10 @@ export const BureauWorkloadChart = ({ data = [], isLoading = false }) => {
                     verticalAlign="top" 
                     height={34} 
                     iconType="circle" 
-                    wrapperStyle={{ fontSize: '11px', color: '#A1A1AA' }} 
+                    wrapperStyle={{ fontSize: '11px', color: chartColors.tick }} 
                   />
-                  <Bar dataKey="active" name="Active / In-Flight Inquiries" fill="#6C7BFF" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="disposed" name="Disposed / Order Issued" fill="#19D3A2" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="active" name="Active / In-Flight Inquiries" fill={chartColors.active} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="disposed" name="Disposed / Order Issued" fill={chartColors.disposed} radius={[4, 4, 0, 0]} />
                 </BarChart>
               ) : (
                 /* 3. Disposal Rate % Efficiency Benchmark */
@@ -355,31 +392,31 @@ export const BureauWorkloadChart = ({ data = [], isLoading = false }) => {
                   data={rateData}
                   margin={{ top: 10, right: 10, left: -10, bottom: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1B1C20" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
                   <XAxis 
                     dataKey="code" 
-                    tick={{ fontSize: 11, fill: '#71717A', fontWeight: 500 }} 
-                    axisLine={{ stroke: '#232427' }} 
+                    tick={{ fontSize: 11, fill: chartColors.tick, fontWeight: 500 }} 
+                    axisLine={{ stroke: chartColors.axis }} 
                     tickLine={false}
                   />
                   <YAxis 
                     domain={[0, 100]} 
-                    tick={{ fontSize: 11, fill: '#71717A' }} 
+                    tick={{ fontSize: 11, fill: chartColors.tick }} 
                     unit="%" 
-                    axisLine={{ stroke: '#232427' }} 
+                    axisLine={{ stroke: chartColors.axis }} 
                     tickLine={false}
                   />
                   <Tooltip
                     formatter={(val) => [`${val}%`, 'Disposal Rate']}
                     contentStyle={{
-                      backgroundColor: '#0F1011',
-                      borderColor: '#232427',
+                      backgroundColor: chartColors.tooltipBg,
+                      borderColor: chartColors.tooltipBorder,
                       borderRadius: '12px',
-                      color: '#F4F4F5',
+                      color: chartColors.tooltipText,
                       fontSize: '12px',
                     }}
                   />
-                  <Bar dataKey="rate" name="Resolution Rate (%)" fill="#00E676" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="rate" name="Resolution Rate (%)" fill={chartColors.rate} radius={[4, 4, 0, 0]} />
                 </BarChart>
               )}
             </ResponsiveContainer>

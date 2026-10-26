@@ -19,6 +19,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { ThemeToggle } from '../../shared/components/ThemeToggle';
 
 export function OfficerLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -165,6 +166,7 @@ export function OfficerLayout() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <ThemeToggle />
             <button
               onClick={() => navigate('/login')}
               className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#101D35] border border-slate-700/80 text-[11px] text-slate-300 hover:text-white transition cursor-pointer"

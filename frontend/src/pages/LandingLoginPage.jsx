@@ -15,6 +15,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { ThemeToggle } from '../shared/components/ThemeToggle';
 
 const PORTAL_CONFIGS = {
   student: {
@@ -174,7 +175,11 @@ export function LandingLoginPage({ defaultPortal }) {
   const Icon = cfg.icon;
 
   return (
-    <div className="min-h-screen w-full bg-[#0B1730] text-slate-100 flex flex-col justify-between p-4 sm:p-6 font-sans selection:bg-[#00E676]/30 selection:text-blue-300 overflow-y-auto">
+    <div className="min-h-screen w-full bg-[#0B1730] text-slate-100 flex flex-col justify-between p-4 sm:p-6 font-sans selection:bg-[#00E676]/30 selection:text-blue-300 overflow-y-auto relative">
+      {/* Top right theme toggle */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+        <ThemeToggle />
+      </div>
       {/* Background ambient glows */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div

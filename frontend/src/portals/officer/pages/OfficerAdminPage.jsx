@@ -10,9 +10,11 @@ import {
   AlertCircle,
   Building2,
   CheckCircle2,
+  Palette,
 } from 'lucide-react';
 import { officerApi } from '../../../shared/api/officerApi';
 import { SkeletonLoader } from '../../../shared/components/SkeletonLoader';
+import { ThemeToggle } from '../../../shared/components/ThemeToggle';
 
 export function OfficerAdminPage() {
   const queryClient = useQueryClient();
@@ -121,6 +123,7 @@ export function OfficerAdminPage() {
           { id: 'sla', label: 'SLA Timeline Rules', icon: Clock },
           { id: 'users', label: 'System Users', icon: Users },
           { id: 'bureaus', label: 'AICTE Bureaus', icon: Building2 },
+          { id: 'theme', label: 'Appearance & Theme', icon: Palette },
         ].map((tab) => {
           const Icon = tab.icon;
           return (
@@ -299,6 +302,75 @@ export function OfficerAdminPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'theme' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
+                System Appearance &amp; Design Themes
+              </h2>
+              <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                Choose between the default statutory dark theme and the warm, human-crafted Earth Editorial theme.
+                Theme changes are instantly applied across all portals and persisted across refreshes.
+              </p>
+            </div>
+
+            <ThemeToggle variant="cards" />
+
+            {/* Theme Architectural Details */}
+            <div className="mt-6 p-4 rounded-xl bg-[#0B1730] border border-slate-700/80">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-2">
+                Earth Editorial Design Specification
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#F5F0E8] border border-[#DED5C8]" />
+                  <span className="text-slate-300">Canvas: <code className="text-[11px] font-mono text-slate-400">#F5F0E8</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#FFFCF7] border border-[#DED5C8]" />
+                  <span className="text-slate-300">Panel/Card: <code className="text-[11px] font-mono text-slate-400">#FFFCF7</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#803D2D]" />
+                  <span className="text-slate-300">Primary: <code className="text-[11px] font-mono text-slate-400">#803D2D</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#683123]" />
+                  <span className="text-slate-300">Hover: <code className="text-[11px] font-mono text-slate-400">#683123</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#292621]" />
+                  <span className="text-slate-300">Main Text: <code className="text-[11px] font-mono text-slate-400">#292621</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#71695F]" />
+                  <span className="text-slate-300">Secondary Text: <code className="text-[11px] font-mono text-slate-400">#71695F</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#DED5C8]" />
+                  <span className="text-slate-300">Borders: <code className="text-[11px] font-mono text-slate-400">#DED5C8</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#EAE2D5]" />
+                  <span className="text-slate-300">Muted Surface: <code className="text-[11px] font-mono text-slate-400">#EAE2D5</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#4A6741]" />
+                  <span className="text-slate-300">Success: <code className="text-[11px] font-mono text-slate-400">#4A6741</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#A66B2D]" />
+                  <span className="text-slate-300">Warning: <code className="text-[11px] font-mono text-slate-400">#A66B2D</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#A33D32]" />
+                  <span className="text-slate-300">Error: <code className="text-[11px] font-mono text-slate-400">#A33D32</code></span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -17,8 +17,33 @@
     --accent-purple: #7C3AED;
   }
 
+  /* ── Earth Editorial Semantic Design Tokens ────────────────────────────── */
+  :root[data-theme="earth"],
+  [data-theme="earth"] {
+    --bg-canvas: #F5F0E8;
+    --bg-panel: #FFFCF7;
+    --bg-card: #FFFCF7;
+    --bg-card-hover: #EAE2D5;
+    --bg-active: #EAE2D5;
+    --border: #DED5C8;
+    --text-primary: #292621;
+    --text-secondary: #71695F;
+    --text-muted: #71695F;
+    --primary: #803D2D;
+    --primary-hover: #683123;
+    --muted-surface: #EAE2D5;
+    --color-success: #4A6741;
+    --color-warning: #A66B2D;
+    --color-error: #A33D32;
+    color-scheme: light;
+  }
+
   * {
     border-color: #232427;
+  }
+
+  [data-theme="earth"] * {
+    border-color: #DED5C8;
   }
 
   body {
@@ -30,6 +55,12 @@
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+  }
+
+  [data-theme="earth"] body,
+  body[data-theme="earth"] {
+    background-color: #F5F0E8 !important;
+    color: #292621 !important;
   }
 
   @media (min-width: 1024px) {
@@ -80,6 +111,367 @@
   flex: 1;
   height: 1px;
   background: #232427;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EARTH EDITORIAL THEME OVERRIDES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Surfaces & Backgrounds */
+[data-theme="earth"] .bg-\[\#0B1730\],
+[data-theme="earth"] .bg-\[\#0A0A0B\],
+[data-theme="earth"] .bg-\[\#0F1011\],
+[data-theme="earth"] .bg-canvas,
+[data-theme="earth"] .bg-gov-surface {
+  background-color: #F5F0E8 !important;
+}
+
+[data-theme="earth"] .bg-\[\#101D35\],
+[data-theme="earth"] .bg-\[\#151618\],
+[data-theme="earth"] .bg-\[\#121315\],
+[data-theme="earth"] .bg-panel,
+[data-theme="earth"] .bg-card,
+[data-theme="earth"] .bg-gov-card {
+  background-color: #FFFCF7 !important;
+}
+
+[data-theme="earth"] .bg-\[\#172846\],
+[data-theme="earth"] .bg-\[\#1A1B1E\],
+[data-theme="earth"] .bg-\[\#1F2023\],
+[data-theme="earth"] .bg-\[\#203554\],
+[data-theme="earth"] .bg-\[\#203657\],
+[data-theme="earth"] .bg-\[\#203453\],
+[data-theme="earth"] .bg-\[\#1D3153\],
+[data-theme="earth"] .bg-\[\#223653\],
+[data-theme="earth"] .bg-\[\#2D2E32\],
+[data-theme="earth"] .bg-\[\#2A2B30\],
+[data-theme="earth"] .bg-\[\#1B1C20\],
+[data-theme="earth"] .bg-\[\#0F1E36\],
+[data-theme="earth"] .bg-\[\#162744\],
+[data-theme="earth"] .bg-\[\#1B2D4F\],
+[data-theme="earth"] .bg-active,
+[data-theme="earth"] .bg-gov-subtle {
+  background-color: #EAE2D5 !important;
+}
+
+/* Translucent panel backgrounds */
+[data-theme="earth"] .bg-\[\#0B1730\]\/60,
+[data-theme="earth"] .bg-\[\#101D35\]\/60,
+[data-theme="earth"] .bg-\[\#172846\]\/50,
+[data-theme="earth"] .bg-\[\#172846\]\/30 {
+  background-color: #EAE2D5 !important;
+}
+
+/* Hover States */
+[data-theme="earth"] .hover\:bg-\[\#172846\]:hover,
+[data-theme="earth"] .hover\:bg-\[\#1A1B1E\]:hover,
+[data-theme="earth"] .hover\:bg-\[\#101D35\]:hover,
+[data-theme="earth"] .hover\:bg-\[\#1F2023\]:hover,
+[data-theme="earth"] .hover\:bg-\[\#203554\]:hover,
+[data-theme="earth"] .hover\:bg-\[\#1D3153\]:hover {
+  background-color: #E0D7C8 !important;
+}
+
+/* 2. Borders and Dividers */
+[data-theme="earth"] .border-slate-700\/80,
+[data-theme="earth"] .border-slate-700,
+[data-theme="earth"] .border-slate-700\/60,
+[data-theme="earth"] .border-slate-800,
+[data-theme="earth"] .border-slate-600,
+[data-theme="earth"] .border-\[\#232427\],
+[data-theme="earth"] .border-\[\#383A40\],
+[data-theme="earth"] .border-border,
+[data-theme="earth"] .border-gov-border,
+[data-theme="earth"] .border-gov-darkBorder,
+[data-theme="earth"] .divide-slate-700\/80 > :not([hidden]) ~ :not([hidden]),
+[data-theme="earth"] .divide-slate-700 > :not([hidden]) ~ :not([hidden]),
+[data-theme="earth"] .divide-\[\#232427\] > :not([hidden]) ~ :not([hidden]),
+[data-theme="earth"] .divide-border > :not([hidden]) ~ :not([hidden]) {
+  border-color: #DED5C8 !important;
+}
+
+/* 3. Typography & Text Colors */
+[data-theme="earth"] .text-white,
+[data-theme="earth"] .text-slate-100,
+[data-theme="earth"] .text-slate-200,
+[data-theme="earth"] .text-\[\#F4F4F5\],
+[data-theme="earth"] .text-primary {
+  color: #292621 !important;
+}
+
+[data-theme="earth"] .hover\:text-white:hover,
+[data-theme="earth"] .hover\:text-slate-100:hover,
+[data-theme="earth"] .hover\:text-slate-200:hover {
+  color: #292621 !important;
+}
+
+[data-theme="earth"] .text-slate-400,
+[data-theme="earth"] .text-slate-500,
+[data-theme="earth"] .text-slate-300,
+[data-theme="earth"] .text-\[\#A1A1AA\],
+[data-theme="earth"] .text-\[\#71717A\],
+[data-theme="earth"] .text-\[\#52525B\],
+[data-theme="earth"] .text-secondary,
+[data-theme="earth"] .text-muted {
+  color: #71695F !important;
+}
+
+/* 4. Primary Terracotta (#803D2D, hover #683123) */
+[data-theme="earth"] .bg-blue-600,
+[data-theme="earth"] .bg-blue-500 {
+  background-color: #803D2D !important;
+  color: #FFFCF7 !important;
+}
+
+[data-theme="earth"] .hover\:bg-blue-700:hover,
+[data-theme="earth"] .hover\:bg-blue-600:hover {
+  background-color: #683123 !important;
+  color: #FFFCF7 !important;
+}
+
+[data-theme="earth"] .text-blue-400,
+[data-theme="earth"] .text-blue-300,
+[data-theme="earth"] .text-blue-500,
+[data-theme="earth"] .text-blue-600,
+[data-theme="earth"] .text-sky-400,
+[data-theme="earth"] .text-indigo-400 {
+  color: #803D2D !important;
+}
+
+[data-theme="earth"] .bg-blue-500\/10,
+[data-theme="earth"] .bg-blue-500\/15,
+[data-theme="earth"] .bg-blue-500\/20,
+[data-theme="earth"] .bg-blue-600\/15,
+[data-theme="earth"] .bg-blue-500\/5,
+[data-theme="earth"] .bg-sky-500\/15,
+[data-theme="earth"] .bg-indigo-500\/15 {
+  background-color: rgba(128, 61, 45, 0.12) !important;
+  color: #803D2D !important;
+}
+
+[data-theme="earth"] .border-blue-500\/30,
+[data-theme="earth"] .border-blue-400\/30,
+[data-theme="earth"] .border-blue-500\/25,
+[data-theme="earth"] .border-blue-400\/20,
+[data-theme="earth"] .border-sky-500\/30,
+[data-theme="earth"] .border-indigo-400\/30 {
+  border-color: rgba(128, 61, 45, 0.3) !important;
+}
+
+[data-theme="earth"] .border-t-blue-500,
+[data-theme="earth"] .border-t-sky-500 {
+  border-top-color: #803D2D !important;
+}
+
+[data-theme="earth"] .ring-blue-500\/70,
+[data-theme="earth"] .ring-blue-500\/20,
+[data-theme="earth"] .focus\:ring-blue-500:focus {
+  --tw-ring-color: rgba(128, 61, 45, 0.35) !important;
+}
+
+/* 5. Success State (#4A6741) */
+[data-theme="earth"] .text-emerald-400,
+[data-theme="earth"] .text-emerald-300,
+[data-theme="earth"] .text-green-400,
+[data-theme="earth"] .text-green-500,
+[data-theme="earth"] .text-\[\#00E676\],
+[data-theme="earth"] .text-\[\#19D3A2\] {
+  color: #4A6741 !important;
+}
+
+[data-theme="earth"] .bg-emerald-500,
+[data-theme="earth"] .bg-emerald-600,
+[data-theme="earth"] .bg-green-600,
+[data-theme="earth"] .bg-\[\#00E676\] {
+  background-color: #4A6741 !important;
+  color: #FFFCF7 !important;
+}
+
+[data-theme="earth"] .hover\:bg-emerald-600:hover,
+[data-theme="earth"] .hover\:bg-emerald-700:hover {
+  background-color: #3B5334 !important;
+}
+
+[data-theme="earth"] .bg-emerald-500\/15,
+[data-theme="earth"] .bg-emerald-500\/10,
+[data-theme="earth"] .bg-emerald-400\/10,
+[data-theme="earth"] .bg-green-500\/10,
+[data-theme="earth"] .bg-teal-500\/10 {
+  background-color: rgba(74, 103, 65, 0.12) !important;
+  color: #4A6741 !important;
+}
+
+[data-theme="earth"] .border-emerald-500\/30,
+[data-theme="earth"] .border-emerald-400\/30,
+[data-theme="earth"] .border-emerald-500\/20 {
+  border-color: rgba(74, 103, 65, 0.3) !important;
+}
+
+[data-theme="earth"] .border-t-emerald-500 {
+  border-top-color: #4A6741 !important;
+}
+
+/* 6. Warning State (#A66B2D) */
+[data-theme="earth"] .text-amber-400,
+[data-theme="earth"] .text-amber-300,
+[data-theme="earth"] .text-yellow-400,
+[data-theme="earth"] .text-\[\#F59E0B\],
+[data-theme="earth"] .text-\[\#FBBF24\],
+[data-theme="earth"] .text-\[\#D97706\] {
+  color: #A66B2D !important;
+}
+
+[data-theme="earth"] .bg-amber-500,
+[data-theme="earth"] .bg-amber-600,
+[data-theme="earth"] .bg-yellow-500 {
+  background-color: #A66B2D !important;
+  color: #FFFCF7 !important;
+}
+
+[data-theme="earth"] .hover\:bg-amber-600:hover {
+  background-color: #8C5925 !important;
+}
+
+[data-theme="earth"] .bg-amber-500\/15,
+[data-theme="earth"] .bg-amber-500\/10,
+[data-theme="earth"] .bg-yellow-500\/10 {
+  background-color: rgba(166, 107, 45, 0.14) !important;
+  color: #A66B2D !important;
+}
+
+[data-theme="earth"] .border-amber-500\/30,
+[data-theme="earth"] .border-amber-400\/30,
+[data-theme="earth"] .border-amber-500\/20 {
+  border-color: rgba(166, 107, 45, 0.32) !important;
+}
+
+/* 7. Error State (#A33D32) */
+[data-theme="earth"] .text-rose-400,
+[data-theme="earth"] .text-rose-300,
+[data-theme="earth"] .text-red-400,
+[data-theme="earth"] .text-red-300,
+[data-theme="earth"] .text-\[\#FF4D79\],
+[data-theme="earth"] .text-\[\#FF5C5C\],
+[data-theme="earth"] .text-\[\#EF4444\] {
+  color: #A33D32 !important;
+}
+
+[data-theme="earth"] .bg-rose-500,
+[data-theme="earth"] .bg-rose-600,
+[data-theme="earth"] .bg-red-500,
+[data-theme="earth"] .bg-red-600 {
+  background-color: #A33D32 !important;
+  color: #FFFCF7 !important;
+}
+
+[data-theme="earth"] .hover\:bg-rose-600:hover,
+[data-theme="earth"] .hover\:bg-red-600:hover {
+  background-color: #873229 !important;
+}
+
+[data-theme="earth"] .bg-rose-500\/15,
+[data-theme="earth"] .bg-rose-500\/10,
+[data-theme="earth"] .bg-red-500\/10,
+[data-theme="earth"] .bg-red-500\/15 {
+  background-color: rgba(163, 61, 50, 0.12) !important;
+  color: #A33D32 !important;
+}
+
+[data-theme="earth"] .border-rose-500\/30,
+[data-theme="earth"] .border-rose-400\/30,
+[data-theme="earth"] .border-red-500\/30 {
+  border-color: rgba(163, 61, 50, 0.3) !important;
+}
+
+[data-theme="earth"] .border-t-rose-500,
+[data-theme="earth"] .border-t-red-500 {
+  border-top-color: #A33D32 !important;
+}
+
+/* Neutral / Pending Triage Badges */
+[data-theme="earth"] .bg-slate-500\/15 {
+  background-color: rgba(113, 105, 95, 0.12) !important;
+}
+[data-theme="earth"] .border-slate-500\/30 {
+  border-color: rgba(113, 105, 95, 0.28) !important;
+}
+
+/* 8. Forms, Inputs, Dropdowns & Modals */
+[data-theme="earth"] input,
+[data-theme="earth"] select,
+[data-theme="earth"] textarea {
+  background-color: #FFFCF7 !important;
+  color: #292621 !important;
+  border-color: #DED5C8 !important;
+}
+
+[data-theme="earth"] input::placeholder,
+[data-theme="earth"] textarea::placeholder {
+  color: #71695F !important;
+}
+
+[data-theme="earth"] input:focus,
+[data-theme="earth"] select:focus,
+[data-theme="earth"] textarea:focus {
+  border-color: #803D2D !important;
+  outline-color: #803D2D !important;
+  box-shadow: 0 0 0 2px rgba(128, 61, 45, 0.2) !important;
+}
+
+[data-theme="earth"] .bg-black\/70,
+[data-theme="earth"] .bg-black\/80 {
+  background-color: rgba(41, 38, 33, 0.45) !important;
+}
+
+/* 9. Shadows: subtle borders over excessive shadows */
+[data-theme="earth"] .shadow-2xl,
+[data-theme="earth"] .shadow-xl,
+[data-theme="earth"] .shadow-lg,
+[data-theme="earth"] .shadow-modal {
+  box-shadow: 0 4px 12px 0 rgba(41, 38, 33, 0.08) !important;
+}
+
+[data-theme="earth"] .shadow-sm,
+[data-theme="earth"] .shadow-subtle {
+  box-shadow: 0 1px 2px 0 rgba(41, 38, 33, 0.04) !important;
+}
+
+/* 10. Custom Scrollbar in Earth Theme */
+[data-theme="earth"] ::-webkit-scrollbar-thumb {
+  background: #DED5C8 !important;
+}
+
+[data-theme="earth"] ::-webkit-scrollbar-thumb:hover {
+  background: #C4B9A8 !important;
+}
+
+[data-theme="earth"] .custom-scrollbar {
+  scrollbar-color: #DED5C8 transparent !important;
+}
+
+[data-theme="earth"] .section-hairline::after {
+  background: #DED5C8 !important;
+}
+
+/* 11. Disable decorative neon glows in Earth Editorial */
+[data-theme="earth"] .blur-\[140px\] {
+  opacity: 0.04 !important;
+}
+
+/* 12. Recharts SVG styling in Earth Theme */
+[data-theme="earth"] .recharts-cartesian-grid-line {
+  stroke: #DED5C8 !important;
+}
+[data-theme="earth"] .recharts-cartesian-axis-line,
+[data-theme="earth"] .recharts-cartesian-axis-tick-line {
+  stroke: #DED5C8 !important;
+}
+[data-theme="earth"] .recharts-text,
+[data-theme="earth"] .recharts-cartesian-axis-tick text {
+  fill: #71695F !important;
+}
+[data-theme="earth"] .recharts-legend-item-text {
+  color: #71695F !important;
 }
 
 /* Print styling for official report generation */
