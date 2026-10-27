@@ -39,6 +39,7 @@ import { BureauAlertsPage } from './portals/bureau/pages/BureauAlertsPage';
 // ── Student Portal ───────────────────────────────────────────────────────────
 import { StudentLayout } from './portals/student/StudentLayout';
 import { StudentLoginPage } from './portals/student/pages/StudentLoginPage';
+import { StudentRegisterPage } from './portals/student/pages/StudentRegisterPage';
 import { StudentComplaintsPage } from './portals/student/pages/StudentComplaintsPage';
 import { StudentNewComplaintPage } from './portals/student/pages/StudentNewComplaintPage';
 import { StudentNeedsReplyPage } from './portals/student/pages/StudentNeedsReplyPage';
@@ -80,6 +81,8 @@ export function App() {
                   <Route path="/officer/login" element={<LandingLoginPage defaultPortal="officer" />} />
                   <Route path="/bureau/login" element={<LandingLoginPage defaultPortal="bureau" />} />
                   <Route path="/student/login" element={<LandingLoginPage defaultPortal="student" />} />
+                  {/* Public: student self-registration */}
+                  <Route path="/student/register" element={<StudentRegisterPage />} />
 
                   {/* ── Officer Portal ──────────────────────────────────── */}
                   <Route

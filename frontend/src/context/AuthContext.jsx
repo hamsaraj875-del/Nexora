@@ -91,12 +91,28 @@ export const AuthProvider = ({ children }) => {
     };
   }, [sessions, loading]);
 
+  /**
+   * loginWithToken — used after self-registration when server returns a token directly
+   * without requiring a separate login request.
+   */
+  const loginWithToken = useCallback((token, user, portal) => {
+    const assignedPortal = portal || portalForRole(user?.role) || 'student';
+    localStorage.setItem(`${assignedPortal}_token`, token);
+    localStorage.setItem(`${assignedPortal}_user`, JSON.stringify(user));
+    setSessions((prev) => ({
+      ...prev,
+      [assignedPortal]: { token, user },
+    }));
+    queryClient.clear();
+  }, [queryClient]);
+
   return (
     <AuthContext.Provider
       value={{
         sessions,
         loading,
         login,
+        loginWithToken,
         logout,
         getPortalAuth,
       }}
