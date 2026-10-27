@@ -874,6 +874,7 @@ export const getStudentCaseById = async (req, res, next) => {
       _id: a._id,
       actionType: a.actionType,
       remarks: a.remarks,
+      isPublic: a.isPublic,
       attachmentUrl: a.attachmentUrl,
       timestamp: a.timestamp,
     }));
