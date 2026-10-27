@@ -74,6 +74,20 @@ export const bureauApi = {
     return res.data;
   },
 
+  // Match Review (data_operator & bureau_officer)
+  getMatchReviewQueue: async () => {
+    const res = await apiClient.get('/bureau/match-review');
+    return res.data;
+  },
+  confirmMatch: async (caseId, data) => {
+    const res = await apiClient.post(`/bureau/match-review/${caseId}/confirm`, data);
+    return res.data;
+  },
+  rejectMatch: async (caseId, data = {}) => {
+    const res = await apiClient.post(`/bureau/match-review/${caseId}/reject`, data);
+    return res.data;
+  },
+
   // Bureau helper for transfers
   getBureaus: async () => {
     const res = await apiClient.get('/bureau/bureaus');

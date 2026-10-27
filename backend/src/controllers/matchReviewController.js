@@ -6,25 +6,37 @@ import { checkInstitutionOverlap } from '../services/overlap.js';
 
 export const getMatchReviewQueue = async (req, res, next) => {
   try {
-    const cases = await Case.find({
+    const query = {
       matchStatus: { $in: ['review', 'unmatched'] },
-    })
+    };
+
+    // Regional officer restriction: filter cases by region if applicable
+    if (req.user?.role === 'regional_officer' && req.user?.region) {
+      const regionInsts = await Institution.find({ region: req.user.region }).select('_id');
+      query.$or = [
+        { institution: { $in: regionInsts.map((i) => i._id) } },
+        { rawState: new RegExp(req.user.region, 'i') },
+      ];
+    }
+
+    const cases = await Case.find(query)
       .populate('currentBureau', 'code name')
+      .populate('institution', 'name aictePermanentId city state region')
       .sort({ createdAt: -1 })
       .limit(50);
 
-    // Compute suggestion list for each review case
+    // Compute suggestion candidates for each review case without misusing sourceCaseRef as aictePermanentId
     const enriched = await Promise.all(
       cases.map(async (c) => {
         const matchResult = await matchInstitution({
-          aictePermanentId: c.sourceCaseRef,
+          aictePermanentId: undefined, // NEVER misuse sourceCaseRef as aictePermanentId
           rawInstitutionName: c.rawInstitutionName,
           rawCity: c.rawCity,
+          rawDistrict: c.rawDistrict,
           rawState: c.rawState,
           rawPincode: c.rawPincode,
         });
 
-        // Top 5 general candidates if no match candidates returned
         let candidates = matchResult.candidates || [];
         if (candidates.length === 0) {
           const general = await Institution.find().limit(5);
@@ -48,11 +60,16 @@ export const getMatchReviewQueue = async (req, res, next) => {
 
 export const confirmMatch = async (req, res, next) => {
   try {
+    // Senior management is read-only
+    if (req.user?.role === 'senior_management') {
+      return res.status(403).json({ success: false, message: 'Forbidden: Senior Management has read-only access.' });
+    }
+
     const { caseId } = req.params;
     const { institutionId, remarks } = req.body;
 
     if (!institutionId) {
-      return res.status(400).json({ success: false, message: 'institutionId is required' });
+      return res.status(400).json({ success: false, message: 'institutionId is required.' });
     }
 
     const c = await Case.findById(caseId);
@@ -62,6 +79,8 @@ export const confirmMatch = async (req, res, next) => {
     if (!institution) {
       return res.status(404).json({ success: false, message: 'Institution not found' });
     }
+
+    const oldInstitutionId = c.institution ? c.institution.toString() : null;
 
     c.institution = institution._id;
     c.matchStatus = 'matched';
@@ -74,16 +93,66 @@ export const confirmMatch = async (req, res, next) => {
       case: c._id,
       actionType: 'remark',
       performedBy: req.user._id,
-      remarks: `Manual Institution Match: Confirmed link to ${institution.name} (ID: ${institution.aictePermanentId}). ${remarks || ''}`,
+      performedByBureau: req.user.bureau?._id,
+      remarks: `Manual Institution Match: Confirmed link to ${institution.name} (AICTE Permanent ID: ${institution.aictePermanentId}). ${remarks || ''}`,
       timestamp: new Date(),
     });
 
-    // Check overlap for confirmed institution
+    // Recalculate overlap for new institution
     await checkInstitutionOverlap(institution._id);
+
+    // If an old institution was previously assigned, recalculate its overlap too
+    if (oldInstitutionId && oldInstitutionId !== institution._id.toString()) {
+      await checkInstitutionOverlap(oldInstitutionId);
+    }
 
     res.json({
       success: true,
       message: `Case ${c.caseId} successfully matched to ${institution.name}`,
+      data: c,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const rejectMatch = async (req, res, next) => {
+  try {
+    if (req.user?.role === 'senior_management') {
+      return res.status(403).json({ success: false, message: 'Forbidden: Senior Management has read-only access.' });
+    }
+
+    const { caseId } = req.params;
+    const { remarks } = req.body;
+
+    const c = await Case.findById(caseId);
+    if (!c) return res.status(404).json({ success: false, message: 'Case not found' });
+
+    const oldInstitutionId = c.institution ? c.institution.toString() : null;
+
+    c.institution = undefined;
+    c.matchStatus = 'unmatched';
+    c.matchScore = 0;
+    c.lastActionText = `Institution match rejected by operator: ${remarks || 'Unmatched'}`;
+    c.lastActionDate = new Date();
+    await c.save();
+
+    await CaseAction.create({
+      case: c._id,
+      actionType: 'remark',
+      performedBy: req.user._id,
+      performedByBureau: req.user.bureau?._id,
+      remarks: `Institution match rejected: ${remarks || 'Marked as unmatched for physical registry review'}`,
+      timestamp: new Date(),
+    });
+
+    if (oldInstitutionId) {
+      await checkInstitutionOverlap(oldInstitutionId);
+    }
+
+    res.json({
+      success: true,
+      message: `Case ${c.caseId} marked as unmatched.`,
       data: c,
     });
   } catch (error) {

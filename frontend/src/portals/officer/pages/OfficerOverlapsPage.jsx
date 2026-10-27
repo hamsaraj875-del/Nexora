@@ -179,6 +179,9 @@ export function OfficerOverlapsPage() {
                         {selectedGroup.institution?.name}
                       </h2>
                       <OverlapBadge severity={selectedGroup.severity || 'high'} />
+                      <span className="text-[10px] px-2 py-0.5 rounded font-mono font-bold uppercase bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                        {selectedGroup.overlapType === 'duplicate_complaint' ? 'Potential Duplicate' : 'Coordination Required'}
+                      </span>
                     </div>
                     <div className="text-xs text-slate-400">
                       AICTE ID: <span className="font-mono text-white">{selectedGroup.institution?.aictePermanentId || 'Pending'}</span> &bull; Region: <span className="text-white">{selectedGroup.institution?.region || 'Central'}</span>
@@ -205,32 +208,54 @@ export function OfficerOverlapsPage() {
                   )}
                 </div>
 
+                {/* Overlap Reason Callout */}
+                {selectedGroup.reason && (
+                  <div className="my-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-300 mb-0.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Reason for Overlap Alert</span>
+                    </div>
+                    <p className="text-slate-300 leading-relaxed text-[11px]">{selectedGroup.reason}</p>
+                  </div>
+                )}
+
                 {selectedGroup.status !== 'open' && (
-                  <div className="my-3 p-3 rounded-xl bg-[#101D35] border border-slate-700/80 text-xs">
+                  <div className="my-2 p-3 rounded-xl bg-[#101D35] border border-slate-700/80 text-xs">
                     <span className="font-bold text-blue-400 capitalize">{selectedGroup.status}: </span>
                     <span className="text-slate-300">{selectedGroup.resolutionRemarks || 'Resolved by statutory officer.'}</span>
                   </div>
                 )}
 
                 {/* Overlapping Cases in this Group */}
-                <div className="flex-1 overflow-y-auto mt-4 space-y-3">
-                  <div className="text-xs font-bold text-white uppercase tracking-wider">
-                    Concurrent Cases Across Bureaus ({groupCases.length})
+                <div className="flex-1 overflow-y-auto mt-2 space-y-3">
+                  <div className="text-xs font-bold text-white uppercase tracking-wider flex items-center justify-between">
+                    <span>Concurrent Cases Across Bureaus ({groupCases.length})</span>
+                    <span className="text-[10px] font-normal text-slate-400">Click any case to inspect audit history</span>
                   </div>
                   {groupCases.map((c) => (
                     <div
                       key={c._id}
                       onClick={() => navigate(`/officer/cases/${c._id}`)}
-                      className="p-3.5 rounded-xl bg-[#101D35] hover:bg-[#101D35] border border-slate-700/80 hover:border-blue-500/50 transition cursor-pointer flex items-center justify-between gap-3"
+                      className="p-3.5 rounded-xl bg-[#101D35] hover:bg-[#172846] border border-slate-700/80 hover:border-blue-500/50 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-mono text-xs font-bold text-blue-400">{c.caseId}</span>
                           <span className="text-[10px] text-slate-300">&bull; {c.category}</span>
+                          {c.assignedOfficer && (
+                            <span className="text-[10px] text-slate-400">
+                              &bull; Assigned: <span className="text-slate-200">{c.assignedOfficer.name}</span>
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-slate-300 line-clamp-1">{c.description || 'Regulatory matter'}</p>
+                        {c.lastActionText && (
+                          <div className="text-[10px] text-slate-400 mt-1">
+                            Latest Action: <span className="text-slate-300">{c.lastActionText}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                         {c.currentBureau && <BureauBadge bureau={c.currentBureau.name} />}
                         <StatusBadge status={c.status} size="sm" />
                       </div>

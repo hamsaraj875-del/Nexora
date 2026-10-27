@@ -50,4 +50,16 @@ CaseSchema.index({
   receivedDate: 1,
 });
 
+// Unique compound index for sourceSystem + sourceCaseRef to guarantee idempotency and prevent duplicates
+CaseSchema.index(
+  { sourceSystem: 1, sourceCaseRef: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      sourceSystem: { $exists: true, $type: 'string', $ne: '' },
+      sourceCaseRef: { $exists: true, $type: 'string', $ne: '' },
+    },
+  }
+);
+
 export const Case = mongoose.model('Case', CaseSchema);

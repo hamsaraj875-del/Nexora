@@ -25,12 +25,21 @@ Password for all demo accounts: **`Password@123`**
 ```bash
 cd backend
 npm install
-npm run seed    # Populates 40 institutions, 6 bureaus, ~150 cases, 34 overlaps, SLA alerts
+npm run seed    # Populates institutions, bureaus, cases, overlaps, SLA alerts (safe for local dev)
 npm start       # Starts server on http://localhost:5000
 # or
 npm run dev     # Starts server with auto-reload (node --watch)
-npm test        # Runs all 17 automated tests
+npm test        # Runs all 35 comprehensive automated tests across 5 test suites
 ```
+
+### Start Frontend
+```bash
+cd frontend
+npm install
+npm run dev     # Starts Vite development server on http://localhost:5173
+npm run build   # Production bundle validation
+```
+
 
 ---
 

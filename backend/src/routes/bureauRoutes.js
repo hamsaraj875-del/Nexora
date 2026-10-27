@@ -21,6 +21,11 @@ import {
   markAlertAsRead,
 } from '../controllers/alertController.js';
 import { getBureaus } from '../controllers/adminController.js';
+import {
+  getMatchReviewQueue,
+  confirmMatch,
+  rejectMatch,
+} from '../controllers/matchReviewController.js';
 
 const router = Router();
 
@@ -55,6 +60,13 @@ router.get('/overlaps', (req, res, next) => {
 // ============================================================================
 router.post('/import/upload', uploadMiddleware.single('file'), uploadBulkFile);
 router.post('/import/sync/run', runManualSync);
+
+// ============================================================================
+// MATCH REVIEW (data_operator & bureau_officer)
+// ============================================================================
+router.get('/match-review', getMatchReviewQueue);
+router.post('/match-review/:caseId/confirm', confirmMatch);
+router.post('/match-review/:caseId/reject', rejectMatch);
 
 // ============================================================================
 // ALERTS (MY BUREAU ONLY)

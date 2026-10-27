@@ -20,10 +20,12 @@ import {
   getOverlaps,
   getOverlapById,
   resolveOverlap,
+  linkOverlapCases,
 } from '../controllers/overlapController.js';
 import {
   getMatchReviewQueue,
   confirmMatch,
+  rejectMatch,
 } from '../controllers/matchReviewController.js';
 import {
   getAlerts,
@@ -69,12 +71,14 @@ router.post('/cases/link', linkCases);
 router.get('/overlaps', getOverlaps);
 router.get('/overlaps/:id', getOverlapById);
 router.post('/overlaps/:id/resolve', resolveOverlap);
+router.post('/overlaps/link', linkOverlapCases);
 
 // ============================================================================
 // MATCH REVIEW
 // ============================================================================
 router.get('/match-review', getMatchReviewQueue);
 router.post('/match-review/:caseId/confirm', confirmMatch);
+router.post('/match-review/:caseId/reject', rejectMatch);
 
 // ============================================================================
 // ALERTS

@@ -1,9 +1,13 @@
 import { Alert } from '../models/Alert.js';
 import { Notification } from '../models/Notification.js';
 import { User } from '../models/User.js';
+import { OverlapGroup } from '../models/OverlapGroup.js';
+import { Institution } from '../models/Institution.js';
 
 /**
  * Creates an alert if an open one of the same type does not already exist for this case/overlap.
+ * Ensures overlap notifications reach all involved bureau officers and regional officers,
+ * even when bureauId is not directly passed.
  */
 export const createOrUpdateAlert = async ({
   alertType,
@@ -53,8 +57,29 @@ export const createOrUpdateAlert = async ({
     userConditions.push({ _id: assignedOfficerId });
   }
 
-  if (bureauId && targetRoles.includes('bureau_officer')) {
-    userConditions.push({ role: 'bureau_officer', bureau: bureauId });
+  if (targetRoles.includes('bureau_officer')) {
+    if (bureauId) {
+      userConditions.push({ role: 'bureau_officer', bureau: bureauId });
+    } else if (overlapGroupId) {
+      // Find all distinct bureaus involved in this overlap cluster
+      const og = await OverlapGroup.findById(overlapGroupId).populate('cases');
+      if (og && og.cases) {
+        const bureauIds = [
+          ...new Set(og.cases.map((c) => c.currentBureau?.toString()).filter(Boolean)),
+        ];
+        if (bureauIds.length > 0) {
+          userConditions.push({ role: 'bureau_officer', bureau: { $in: bureauIds } });
+        }
+      }
+    }
+  }
+
+  // Notify regional officer if the institution belongs to their region
+  if (institutionId) {
+    const inst = await Institution.findById(institutionId);
+    if (inst && inst.region) {
+      userConditions.push({ role: 'regional_officer', region: inst.region });
+    }
   }
 
   const recipients = await User.find({
@@ -79,4 +104,19 @@ export const createOrUpdateAlert = async ({
   }
 
   return alert;
+};
+
+/**
+ * Resolves active open alerts for a case when disposed, rejected, or re-routed.
+ */
+export const resolveCaseAlerts = async (caseId, alertTypes = null) => {
+  if (!caseId) return;
+  const filter = {
+    case: caseId,
+    resolvedAt: { $exists: false },
+  };
+  if (alertTypes && Array.isArray(alertTypes)) {
+    filter.alertType = { $in: alertTypes };
+  }
+  await Alert.updateMany(filter, { resolvedAt: new Date() });
 };

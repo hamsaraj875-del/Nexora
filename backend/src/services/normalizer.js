@@ -48,10 +48,21 @@ export const normalizeCity = (city) => {
   return city.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
 };
 
-export const normalizeDate = (rawDate) => {
-  if (!rawDate) return new Date();
+export const normalizeDate = (rawDate, allowDefault = false) => {
+  if (!rawDate) {
+    if (allowDefault) return new Date();
+    throw new Error('Received date is required.');
+  }
   const d = new Date(rawDate);
-  return isNaN(d.getTime()) ? new Date() : d;
+  if (isNaN(d.getTime())) {
+    throw new Error(`Invalid date value: "${rawDate}". Expected valid ISO or date format.`);
+  }
+  const year = d.getFullYear();
+  const currentYear = new Date().getFullYear();
+  if (year < 1990 || year > currentYear + 1) {
+    throw new Error(`Date year ${year} is outside reasonable bounds (1990-${currentYear + 1}).`);
+  }
+  return d;
 };
 
 export const normalizeStatus = (rawStatus) => {

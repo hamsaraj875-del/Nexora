@@ -7,7 +7,7 @@ import { OverlapGroup } from '../models/OverlapGroup.js';
 import { SlaRule } from '../models/SlaRule.js';
 import { checkInstitutionOverlap } from '../services/overlap.js';
 import { generateCaseId } from '../services/ingestion.js';
-import { createOrUpdateAlert } from '../services/alerts.js';
+import { createOrUpdateAlert, resolveCaseAlerts } from '../services/alerts.js';
 import { escapeRegex } from '../utils/escapeRegex.js';
 
 // ============================================================================
@@ -86,6 +86,12 @@ export const getCases = async (req, res, next) => {
     if (req.user.role === 'regional_officer' && req.user.region) {
       const insts = await Institution.find({ region: req.user.region }).select('_id');
       query.institution = { $in: insts.map((i) => i._id) };
+    }
+
+    // Bureau officer / data operator restriction: own bureau only
+    if ((req.user.role === 'bureau_officer' || req.user.role === 'data_operator') && req.user.bureau) {
+      const userBureauId = req.user.bureau._id ? req.user.bureau._id.toString() : req.user.bureau.toString();
+      query.currentBureau = userBureauId;
     }
 
     // Keyword search with regex escaping
@@ -174,6 +180,15 @@ export const getCaseById = async (req, res, next) => {
       }
     }
 
+    // Bureau officer / data operator restriction: own bureau only
+    if ((req.user.role === 'bureau_officer' || req.user.role === 'data_operator') && req.user.bureau) {
+      const userBureauId = req.user.bureau._id ? req.user.bureau._id.toString() : req.user.bureau.toString();
+      const caseBureauId = c.currentBureau?._id ? c.currentBureau._id.toString() : c.currentBureau?.toString();
+      if (!caseBureauId || caseBureauId !== userBureauId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Case outside your bureau' });
+      }
+    }
+
     // Find links
     const links = await CaseLink.find({
       $or: [{ caseA: c._id }, { caseB: c._id }],
@@ -236,6 +251,14 @@ export const getCaseHistory = async (req, res, next) => {
       const inst = await Institution.findById(c.institution);
       if (inst && inst.region !== req.user.region) {
         return res.status(403).json({ success: false, message: 'Forbidden: Case outside your region' });
+      }
+    }
+
+    if ((req.user.role === 'bureau_officer' || req.user.role === 'data_operator') && req.user.bureau) {
+      const userBureauId = req.user.bureau._id ? req.user.bureau._id.toString() : req.user.bureau.toString();
+      const caseBureauId = c.currentBureau?.toString();
+      if (!caseBureauId || caseBureauId !== userBureauId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Case outside your bureau' });
       }
     }
 
@@ -598,6 +621,10 @@ export const updateBureauCaseStatus = async (req, res, next) => {
       timestamp: new Date(),
     });
 
+    if (['disposed', 'rejected'].includes(status)) {
+      await resolveCaseAlerts(c._id);
+    }
+
     if (c.institution) {
       await checkInstitutionOverlap(c.institution);
     }
@@ -743,6 +770,8 @@ export const transferBureauCase = async (req, res, next) => {
       remarks: remarks || `Transferred to ${toBureau.name}`,
       timestamp: new Date(),
     });
+
+    await resolveCaseAlerts(c._id, ['pending_reminder']);
 
     if (c.institution) {
       await checkInstitutionOverlap(c.institution);

@@ -9,7 +9,7 @@
     "dev": "node --watch src/server.js",
     "mongo": "node dev-mongo.js",
     "seed": "node src/seed/seedData.js",
-    "test": "node --test src/tests/*.test.js"
+    "test": "node --test --test-concurrency=1 src/tests/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

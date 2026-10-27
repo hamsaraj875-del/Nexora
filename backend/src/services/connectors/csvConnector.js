@@ -5,7 +5,12 @@ import ExcelJS from 'exceljs';
  * Parse CSV or Excel file buffer into standardized row objects
  */
 export const parseUploadFile = async (fileBuffer, originalname) => {
-  const isExcel = originalname.endsWith('.xlsx') || originalname.endsWith('.xls');
+  const lowerName = (originalname || '').toLowerCase();
+  if (lowerName.endsWith('.xls')) {
+    throw new Error('Legacy Excel (.xls) binary files are not supported. Please convert and upload as .xlsx or .csv.');
+  }
+
+  const isExcel = lowerName.endsWith('.xlsx');
 
   if (isExcel) {
     const workbook = new ExcelJS.Workbook();

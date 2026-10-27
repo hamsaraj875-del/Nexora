@@ -78,25 +78,35 @@ export function BureauOverlapsPage() {
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                        <span>Cluster: {group.clusterName || `Group #${group._id.slice(-6)}`}</span>
+                        <span>{group.institution?.name || group.institutionName || 'Target Institution'}</span>
                         <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#172846] text-slate-400">
-                          {cases.length} cases linked
+                          {cases.length} cases concurrent
                         </span>
                       </h3>
                       <div className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
                         <Building className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{primary?.institution?.name || group.institutionName || 'Target Institution'}</span>
+                        <span>AICTE ID: {group.institution?.aictePermanentId || 'Pending'} &bull; Region: {group.institution?.region || 'Central'}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Confidence:</span>
-                    <span className="text-xs font-mono font-bold text-[#00E676] bg-[#00E676]/10 px-2 py-0.5 rounded border border-[#00E676]/20">
-                      {Math.round((group.similarityScore || 0.85) * 100)}% Match
+                    <span className="text-xs font-mono font-bold uppercase px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                      {group.overlapType === 'duplicate_complaint' ? 'Duplicate Alert' : 'Coordination Required'}
+                    </span>
+                    <span className="text-xs font-mono font-bold uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                      {group.severity || 'medium'}
                     </span>
                   </div>
                 </div>
+
+                {/* Overlap Reason Callout */}
+                {group.reason && (
+                  <div className="mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+                    <span className="font-semibold text-amber-300">Trigger Reason: </span>
+                    <span className="text-slate-300">{group.reason}</span>
+                  </div>
+                )}
 
                 {/* Cases inside this overlap cluster */}
                 <div className="pt-4 space-y-2">
@@ -111,13 +121,16 @@ export function BureauOverlapsPage() {
                       >
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-semibold text-slate-100">
-                              {c.sourceCaseRef || c._id.slice(-8)}
+                            <span className="font-mono text-xs font-bold text-blue-400">
+                              {c.caseId || c.sourceCaseRef || c._id.slice(-8)}
                             </span>
                             <StatusBadge status={c.status} size="sm" />
                           </div>
-                          <div className="text-xs text-slate-400 truncate">
-                            Bureau: <span className="text-slate-100">{c.currentBureau?.name || 'Assigned'}</span>
+                          <div className="text-xs text-slate-300 font-medium truncate">
+                            {c.category}
+                          </div>
+                          <div className="text-[11px] text-slate-400 truncate">
+                            Bureau: <span className="text-slate-200">{c.currentBureau?.name || 'Assigned'}</span>
                           </div>
                         </div>
 

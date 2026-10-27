@@ -9,9 +9,13 @@ export const getDashboardSummary = async (req, res, next) => {
 
     // Regional officer filter if applicable
     const filter = {};
+    const overlapFilter = { status: 'open' };
+
     if (req.user?.role === 'regional_officer' && req.user?.region) {
       const institutionsInRegion = await Institution.find({ region: req.user.region }).select('_id');
-      filter.institution = { $in: institutionsInRegion.map((i) => i._id) };
+      const instIds = institutionsInRegion.map((i) => i._id);
+      filter.institution = { $in: instIds };
+      overlapFilter.institution = { $in: instIds };
     }
 
     const [
@@ -39,15 +43,19 @@ export const getDashboardSummary = async (req, res, next) => {
         status: { $in: ['pending', 'under_process', 'needs_info', 'transferred', 'escalated'] },
         expectedDisposalDate: { $lt: now },
       }),
-      OverlapGroup.countDocuments({ status: 'open' }),
+      OverlapGroup.countDocuments(overlapFilter),
     ]);
 
+    const totalCases = totalReceived;
+    const openCases = pending + underProcess + needsInfo + transferred + escalated;
     const disposalRate = totalReceived > 0 ? ((disposed / totalReceived) * 100).toFixed(1) : 0;
 
     res.json({
       success: true,
       data: {
         totalReceived,
+        totalCases,
+        openCases,
         pending,
         underProcess,
         needsInfo,
@@ -68,7 +76,14 @@ export const getDashboardSummary = async (req, res, next) => {
 export const getBureauWorkload = async (req, res, next) => {
   try {
     const bureaus = await Bureau.find().select('name code type');
-    const cases = await Case.find().populate('currentBureau', 'code name');
+
+    const caseFilter = {};
+    if (req.user?.role === 'regional_officer' && req.user?.region) {
+      const institutionsInRegion = await Institution.find({ region: req.user.region }).select('_id');
+      caseFilter.institution = { $in: institutionsInRegion.map((i) => i._id) };
+    }
+
+    const cases = await Case.find(caseFilter).populate('currentBureau', 'code name');
 
     const workload = bureaus.map((b) => {
       const bureauCases = cases.filter(
@@ -109,8 +124,15 @@ export const getBureauWorkload = async (req, res, next) => {
 
 export const getInstitutionStatus = async (req, res, next) => {
   try {
+    const matchStage = { institution: { $ne: null } };
+
+    if (req.user?.role === 'regional_officer' && req.user?.region) {
+      const institutionsInRegion = await Institution.find({ region: req.user.region }).select('_id');
+      matchStage.institution = { $in: institutionsInRegion.map((i) => i._id) };
+    }
+
     const topInstitutions = await Case.aggregate([
-      { $match: { institution: { $ne: null } } },
+      { $match: matchStage },
       {
         $group: {
           _id: '$institution',
@@ -170,7 +192,6 @@ export const getInstitutionStatus = async (req, res, next) => {
 /**
  * Bureau Dashboard KPI summary (for logged-in bureau officer / data operator's bureau)
  * GET /api/bureau/dashboard
- * Counts: assigned, pending, in progress, needs info, overdue, due soon, done this month
  */
 export const getBureauDashboard = async (req, res, next) => {
   try {

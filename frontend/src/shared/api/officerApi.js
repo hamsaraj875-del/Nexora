@@ -58,6 +58,10 @@ export const officerApi = {
     const res = await apiClient.post(`/officer/overlaps/${id}/resolve`, data);
     return res.data;
   },
+  linkOverlapCases: async (data) => {
+    const res = await apiClient.post('/officer/overlaps/link', data);
+    return res.data;
+  },
 
   // Match Review
   getMatchReviewQueue: async () => {
@@ -66,6 +70,10 @@ export const officerApi = {
   },
   confirmMatch: async (caseId, data) => {
     const res = await apiClient.post(`/officer/match-review/${caseId}/confirm`, data);
+    return res.data;
+  },
+  rejectMatch: async (caseId, data = {}) => {
+    const res = await apiClient.post(`/officer/match-review/${caseId}/reject`, data);
     return res.data;
   },
 

@@ -119,6 +119,7 @@ export function App() {
                     <Route path="attention" element={<BureauAttentionPage />} />
                     <Route path="overlaps" element={<BureauOverlapsPage />} />
                     <Route path="imports" element={<BureauImportsPage />} />
+                    <Route path="match-review" element={<OfficerMatchReviewPage />} />
                     <Route path="alerts" element={<BureauAlertsPage />} />
                     <Route path="*" element={<Navigate to="/bureau" replace />} />
                   </Route>

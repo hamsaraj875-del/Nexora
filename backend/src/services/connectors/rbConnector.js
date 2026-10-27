@@ -11,19 +11,37 @@ const mapRbCase = (raw) => ({
   rawPincode: raw.pincode,
   category: raw.regulatory_category || raw.category || 'Regulatory Compliance',
   description: raw.matter_summary || raw.details || raw.description,
-  complainantType: raw.filed_by || 'Public / Student',
+  complainantType: raw.filed_by || 'Complainant',
   receivedDate: raw.registration_dt || raw.date,
   status: raw.complaint_status || 'pending',
-  lastActionText: raw.recent_action || 'Registered in RB',
+  lastActionText: raw.recent_action || 'Registered in Regulatory Bureau',
+  isSimulated: Boolean(raw.isSimulated ?? true),
 });
 
 export const fetchRbCases = async (baseUrl = `http://localhost:${process.env.PORT || 5000}`) => {
+  const targetUrl = process.env.RB_API_URL || `${baseUrl}/mock/rb/cases`;
+  const isSimulated = !process.env.RB_API_URL;
+
   try {
-    const res = await fetch(`${baseUrl}/mock/rb/cases`);
-    if (!res.ok) throw new Error(`RB API responded with status ${res.status}`);
+    const res = await fetch(targetUrl, {
+      headers: {
+        'Accept': 'application/json',
+        ...(process.env.RB_API_KEY ? { 'Authorization': `Bearer ${process.env.RB_API_KEY}` } : {}),
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Regulatory Bureau Connector HTTP error ${res.status}: ${res.statusText}`);
+    }
+
     const data = await res.json();
-    return (data.cases || []).map(mapRbCase);
+    const cases = data.cases || [];
+    return cases.map((c) => mapRbCase({ ...c, isSimulated }));
   } catch (error) {
-    return mockRbCases.map(mapRbCase);
+    if (isSimulated && mockRbCases.length > 0) {
+      console.warn(`[RB Connector] Using simulated mock demo data (endpoint ${targetUrl} unavailable: ${error.message})`);
+      return mockRbCases.map((c) => mapRbCase({ ...c, isSimulated: true }));
+    }
+    throw new Error(`Regulatory Bureau connector synchronization failed: ${error.message}`);
   }
 };

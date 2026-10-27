@@ -40,17 +40,19 @@ export const connectDB = async () => {
     });
     console.log(`[Database] MongoDB Connected: ${conn.connection.host}`);
 
-    // Check if database needs seeding
-    try {
-      const { User } = await import('../models/User.js');
-      const userCount = await User.countDocuments();
-      if (userCount === 0) {
-        console.log('[Database] Remote database is empty. Automatically seeding default users and datasets...');
-        const { seedDatabase } = await import('../seed/seedData.js');
-        await seedDatabase(false);
+    // Guard: Prevent automatic demo-data seeding in production
+    if (env.NODE_ENV !== 'production' && process.env.AUTO_SEED === 'true') {
+      try {
+        const { User } = await import('../models/User.js');
+        const userCount = await User.countDocuments();
+        if (userCount === 0) {
+          console.log('[Database] Non-production database is empty. Seeding default demo datasets...');
+          const { seedDatabase } = await import('../seed/seedData.js');
+          await seedDatabase(false);
+        }
+      } catch (seedErr) {
+        console.warn('[Database] Seeding check note:', seedErr.message);
       }
-    } catch (seedErr) {
-      console.warn('[Database] Seeding check note:', seedErr.message);
     }
 
     return conn;
