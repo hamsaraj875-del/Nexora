@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+//const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const baseURL = 'http://localhost:5000/api';
 
 export const apiClient = axios.create({
   baseURL,
@@ -13,7 +14,12 @@ export const apiClient = axios.create({
 // Request interceptor: attach JWT token from localStorage
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    //const token = localStorage.getItem('token');
+    const token =
+      localStorage.getItem('officer_token') ||
+      localStorage.getItem('bureau_token') ||
+      localStorage.getItem('student_token') ||
+      localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -62,6 +68,10 @@ export const dashboardApi = {
   },
   getInstitutionStatus: async () => {
     const response = await apiClient.get('/dashboard/institution-status');
+    return response.data;
+  },
+  getMonthlyTrends: async () => {
+    const response = await apiClient.get('/dashboard/monthly-trends');
     return response.data;
   },
 };

@@ -8,6 +8,7 @@ import { authenticate, requirePortal } from './middleware/auth.js';
 import { getMe } from './controllers/authController.js';
 
 // Route imports
+import dashboardRoutes from './routes/dashboardRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import officerRoutes from './routes/officerRoutes.js';
 import bureauRoutes from './routes/bureauRoutes.js';
@@ -90,6 +91,14 @@ app.get('/api/me', authenticate, getMe);
 app.use('/api/officer', authenticate, requirePortal('officer'), officerRoutes);
 app.use('/api/bureau', authenticate, requirePortal('bureau'), bureauRoutes);
 app.use('/api/student', authenticate, requirePortal('student'), studentRoutes);
+
+// Dashboard analytics routes
+app.use('/api/dashboard', dashboardRoutes);
+
+// Dedicated Portal API route groups with portal enforcement
+//app.use('/api/officer', authenticate, requirePortal('officer'), officerRoutes);
+//app.use('/api/bureau', authenticate, requirePortal('bureau'), bureauRoutes);
+//app.use('/api/student', authenticate, requirePortal('student'), studentRoutes);
 
 // Mock external sources (used for demo connectors & external portal sync)
 app.use('/mock', mockRoutes);

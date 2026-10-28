@@ -38,7 +38,10 @@ import {
   Tooltip, 
   PieChart, 
   Pie, 
-  Cell 
+  Cell,
+  LineChart,
+  Line,
+  Legend
 } from 'recharts';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -50,6 +53,46 @@ import { OverlapBadge } from '../components/common/OverlapBadge';
 import { SectionHeader } from '../components/common/SectionHeader';
 import { BureauWorkloadChart } from '../components/dashboard/BureauWorkloadChart';
 
+function MonthlyComplaintTrends({ data = [] }) {
+  return (
+    <section className="rounded-2xl border border-[#232427] bg-[#151618] p-5 shadow-sm">
+      <div className="mb-5">
+        <h2 className="text-lg font-semibold text-slate-900">
+          Monthly Complaint Trends
+        </h2>
+        <p className="text-sm text-slate-500">
+          Complaints received vs. resolved over the last 6 months
+        </p>
+      </div>
+
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="month" />
+          <YAxis allowDecimals={false} />
+          <Tooltip />
+          <Legend />
+          <Line
+            type="monotone"
+            dataKey="received"
+            name="Received"
+            stroke="#0f766e"
+            strokeWidth={3}
+            dot={{ r: 4 }}
+          />
+          <Line
+            type="monotone"
+            dataKey="resolved"
+            name="Resolved"
+            stroke="#6366f1"
+            strokeWidth={3}
+            dot={{ r: 4 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </section>
+  );
+}
 export const DashboardPage = () => {
   const { selectedDateRange, triggerRefresh, isRefreshing } = useApp();
   const { user: currentUser } = useAuth();
@@ -71,6 +114,10 @@ export const DashboardPage = () => {
     queryFn: dashboardApi.getBureauWorkload,
   });
 
+  const monthlyTrendsQuery = useQuery({
+    queryKey: ['dashboard-monthly-trends'],
+    queryFn: dashboardApi.getMonthlyTrends,
+  });
   const regionsQuery = useQuery({
     queryKey: ['dashboard-regions'],
     queryFn: () => reportsApi.getReportData('region'),
@@ -104,6 +151,7 @@ export const DashboardPage = () => {
       overlapsQuery.refetch(),
       casesQuery.refetch(),
       triggerRefresh(),
+      monthlyTrendsQuery.refetch(),
     ]);
   };
 
@@ -161,6 +209,11 @@ export const DashboardPage = () => {
 
   // Bureau Workload formatted for BureauWorkloadChart
   const rawWorkload = workloadQuery.data?.data || [];
+  const monthlyTrends = (monthlyTrendsQuery.data?.data || []).map((item) => ({
+    month: item.month,
+    received: item.received,
+    resolved: item.resolved,
+  }));
   const bureauChartData = rawWorkload.map((b) => ({
     code: b.code || b.name,
     name: b.name,
@@ -431,7 +484,8 @@ export const DashboardPage = () => {
         <div>
           <BureauWorkloadChart data={bureauChartData} isLoading={workloadQuery.isLoading} />
         </div>
-
+          <SectionHeader title="Monthly Complaint Trends" />
+          <MonthlyComplaintTrends data={monthlyTrends} />
         {/* Section Header: Regional & Ageing Analytics */}
         <SectionHeader title="Regional Load & Ageing Compliance" />
 
