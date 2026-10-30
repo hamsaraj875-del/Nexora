@@ -13,7 +13,7 @@ export const apiClient = axios.create({
 /**
  * Detects the active portal based on the request URL and/or browser location
  * @param {string} url - The request endpoint URL
- * @returns {'officer' | 'bureau' | 'student'}
+ * @returns {'officer' | 'bureau'}
  */
 export const detectPortal = (url = '') => {
   const cleanUrl = (url || '').toLowerCase();
@@ -21,13 +21,11 @@ export const detectPortal = (url = '') => {
 
   if (cleanUrl.includes('/officer') || pathname.startsWith('/officer')) return 'officer';
   if (cleanUrl.includes('/bureau') || pathname.startsWith('/bureau')) return 'bureau';
-  if (cleanUrl.includes('/student') || pathname.startsWith('/student')) return 'student';
 
   // Fallback: check which token exists
   if (typeof localStorage !== 'undefined') {
     if (localStorage.getItem('officer_token')) return 'officer';
     if (localStorage.getItem('bureau_token')) return 'bureau';
-    if (localStorage.getItem('student_token')) return 'student';
   }
 
   return 'officer';
@@ -49,7 +47,6 @@ const portalFromApiUrl = (url = '') => {
   const cleanUrl = (url || '').toLowerCase();
   if (cleanUrl.includes('/officer')) return 'officer';
   if (cleanUrl.includes('/bureau')) return 'bureau';
-  if (cleanUrl.includes('/student')) return 'student';
   return null;
 };
 
