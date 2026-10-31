@@ -7,9 +7,14 @@ import {
 export const getReport = async (req, res, next) => {
   try {
     const { type } = req.params;
-    const { format = 'json', period } = req.query;
+    const { format = 'json', period, dateFrom, dateTo } = req.query;
 
-    const data = await generateReportData(type, { period });
+    const data = await generateReportData(type, {
+      period,
+      dateFrom,
+      dateTo,
+      user: req.user,
+    });
 
     if (format === 'csv') {
       const csv = formatReportCSV(type, data);

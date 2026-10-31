@@ -1,10 +1,10 @@
+
 import { Alert } from '../models/Alert.js';
 import { Notification } from '../models/Notification.js';
 import { User } from '../models/User.js';
+import { OverlapGroup } from '../models/OverlapGroup.js';
+import { Institution } from '../models/Institution.js';
 
-/**
- * Creates an alert if an open one of the same type does not already exist for this case/overlap.
- */
 export const createOrUpdateAlert = async ({
   alertType,
   caseId,
@@ -15,8 +15,8 @@ export const createOrUpdateAlert = async ({
   targetRoles = [],
   bureauId = null,
   assignedOfficerId = null,
+  notifyOnUpdate = false,
 }) => {
-  // Check if open alert exists for this case/group & type
   const filter = {
     alertType,
     resolvedAt: { $exists: false },
@@ -26,6 +26,8 @@ export const createOrUpdateAlert = async ({
   if (overlapGroupId) filter.overlapGroup = overlapGroupId;
 
   let alert = await Alert.findOne(filter);
+  let isNewAlert = false;
+  let messageChanged = false;
 
   if (!alert) {
     alert = await Alert.create({
@@ -36,13 +38,17 @@ export const createOrUpdateAlert = async ({
       message,
       severity,
     });
+    isNewAlert = true;
   } else {
+    messageChanged = alert.message !== message;
+
     alert.message = message;
     alert.severity = severity;
+    if (institutionId) alert.institution = institutionId;
+
     await alert.save();
   }
 
-  // Find users who should receive this notification
   const userConditions = [{ role: 'super_admin' }];
 
   if (targetRoles.includes('senior_management')) {
@@ -53,16 +59,51 @@ export const createOrUpdateAlert = async ({
     userConditions.push({ _id: assignedOfficerId });
   }
 
-  if (bureauId && targetRoles.includes('bureau_officer')) {
-    userConditions.push({ role: 'bureau_officer', bureau: bureauId });
+  if (targetRoles.includes('bureau_officer')) {
+    if (bureauId) {
+      userConditions.push({
+        role: 'bureau_officer',
+        bureau: bureauId,
+      });
+    } else if (overlapGroupId) {
+      const group = await OverlapGroup.findById(overlapGroupId)
+        .populate('cases');
+
+      if (group?.cases) {
+        const bureauIds = [
+          ...new Set(
+            group.cases
+              .map((c) => c.currentBureau?.toString())
+              .filter(Boolean)
+          ),
+        ];
+
+        if (bureauIds.length) {
+          userConditions.push({
+            role: 'bureau_officer',
+            bureau: { $in: bureauIds },
+          });
+        }
+      }
+    }
+  }
+
+  if (institutionId) {
+    const institution = await Institution.findById(institutionId);
+
+    if (institution?.region) {
+      userConditions.push({
+        role: 'regional_officer',
+        region: institution.region,
+      });
+    }
   }
 
   const recipients = await User.find({
     isActive: true,
     $or: userConditions,
-  });
+  }).select('_id');
 
-  // Create notifications avoiding duplicates
   for (const user of recipients) {
     const existingNotif = await Notification.findOne({
       user: user._id,
@@ -75,8 +116,33 @@ export const createOrUpdateAlert = async ({
         alert: alert._id,
         isRead: false,
       });
+    } else if (
+      !isNewAlert &&
+      notifyOnUpdate &&
+      messageChanged &&
+      existingNotif.isRead
+    ) {
+      existingNotif.isRead = false;
+      await existingNotif.save();
     }
   }
 
   return alert;
+};
+
+export const resolveCaseAlerts = async (caseId, alertTypes = null) => {
+  if (!caseId) return;
+
+  const filter = {
+    case: caseId,
+    resolvedAt: { $exists: false },
+  };
+
+  if (Array.isArray(alertTypes)) {
+    filter.alertType = { $in: alertTypes };
+  }
+
+  await Alert.updateMany(filter, {
+    resolvedAt: new Date(),
+  });
 };

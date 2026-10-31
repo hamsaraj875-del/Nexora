@@ -14,6 +14,14 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET is required and must be at least 32 characters'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   CLIENT_URL: z.string().default('http://localhost:5173'),
+
+  OPENAI_API_KEY: z.string().default(''),
+  OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
 });
 
 export const env = envSchema.parse(process.env);
+
+console.log(
+  '[OpenAI Config] API key loaded:',
+  Boolean(env.OPENAI_API_KEY)
+);

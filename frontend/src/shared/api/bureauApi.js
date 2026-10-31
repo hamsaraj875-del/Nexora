@@ -1,3 +1,4 @@
+
 import { apiClient } from './client';
 
 export const bureauApi = {
@@ -12,43 +13,54 @@ export const bureauApi = {
     const res = await apiClient.get('/bureau/cases', { params });
     return res.data;
   },
+
   getCaseById: async (id) => {
     const res = await apiClient.get(`/bureau/cases/${id}`);
     return res.data;
   },
+
   getCaseHistory: async (id) => {
     const res = await apiClient.get(`/bureau/cases/${id}/history`);
     return res.data;
   },
+
   updateCaseStatus: async (id, data) => {
-    // data: { status, remarks }
     const res = await apiClient.patch(`/bureau/cases/${id}/status`, data);
     return res.data;
   },
+
   addCaseAction: async (id, data) => {
-    // data: { actionType, remarks, attachmentUrl }
     const res = await apiClient.post(`/bureau/cases/${id}/actions`, data);
     return res.data;
   },
+
   requestInfo: async (id, data) => {
-    // data: { message }
     const res = await apiClient.post(`/bureau/cases/${id}/request-info`, data);
     return res.data;
   },
+
   transferCase: async (id, data) => {
-    // data: { targetBureauId, remarks }
     const res = await apiClient.post(`/bureau/cases/${id}/transfer`, data);
     return res.data;
   },
+
   escalateCase: async (id, data) => {
-    // data: { remarks }
     const res = await apiClient.post(`/bureau/cases/${id}/escalate`, data);
     return res.data;
   },
 
   // Overlaps (Read-only, my bureau)
-  getOverlaps: async (params = {}) => {
-    const res = await apiClient.get('/bureau/overlaps', { params: { ...params, mine: 'true' } });
+  getOverlaps: async () => {
+    const res = await apiClient.get('/bureau/overlaps');
+    return res.data;
+  },
+  getOverlapExplanations: async (id) => {
+  const res = await apiClient.get(`/bureau/overlaps/${id}/explanations`);
+  return res.data;
+},
+
+  getOverlapCaseReadOnly: async (caseId) => {
+    const res = await apiClient.get(`/bureau/overlaps/cases/${caseId}`);
     return res.data;
   },
 
@@ -59,6 +71,7 @@ export const bureauApi = {
     });
     return res.data;
   },
+
   runManualSync: async () => {
     const res = await apiClient.post('/bureau/import/sync/run');
     return res.data;
@@ -69,8 +82,25 @@ export const bureauApi = {
     const res = await apiClient.get('/bureau/alerts');
     return res.data;
   },
+
   markAlertRead: async (id) => {
     const res = await apiClient.post(`/bureau/alerts/${id}/read`);
+    return res.data;
+  },
+
+  // Match Review (data_operator & bureau_officer)
+  getMatchReviewQueue: async () => {
+    const res = await apiClient.get('/bureau/match-review');
+    return res.data;
+  },
+
+  confirmMatch: async (caseId, data) => {
+    const res = await apiClient.post(`/bureau/match-review/${caseId}/confirm`, data);
+    return res.data;
+  },
+
+  rejectMatch: async (caseId, data = {}) => {
+    const res = await apiClient.post(`/bureau/match-review/${caseId}/reject`, data);
     return res.data;
   },
 

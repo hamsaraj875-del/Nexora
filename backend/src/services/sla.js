@@ -1,9 +1,25 @@
 import { Case } from '../models/Case.js';
 import { SlaRule } from '../models/SlaRule.js';
+import { Alert } from '../models/Alert.js';
 import { createOrUpdateAlert } from './alerts.js';
 
 export const runSlaChecks = async () => {
   const now = new Date();
+
+  // 1. Clean up open alerts for already disposed or rejected cases
+  const closedCases = await Case.find({ status: { $in: ['disposed', 'rejected'] } }).select('_id');
+  if (closedCases.length > 0) {
+    await Alert.updateMany(
+      {
+        case: { $in: closedCases.map((c) => c._id) },
+        alertType: { $in: ['pending_reminder', 'due_soon', 'breach', 'escalation'] },
+        resolvedAt: { $exists: false },
+      },
+      { resolvedAt: now }
+    );
+  }
+
+  // 2. Fetch all active cases
   const openCases = await Case.find({
     status: { $in: ['pending', 'under_process', 'needs_info', 'transferred', 'escalated'] },
   }).populate('currentBureau');
@@ -12,7 +28,7 @@ export const runSlaChecks = async () => {
   const rules = await SlaRule.find();
   const rulesByCategory = new Map(rules.map((r) => [r.category, r]));
 
-  let stats = {
+  const stats = {
     checked: openCases.length,
     reminders: 0,
     dueSoon: 0,
@@ -28,8 +44,9 @@ export const runSlaChecks = async () => {
       escalateAfterDaysOverdue: 7,
     };
 
+    const lastAction = c.lastActionDate || c.receivedDate || now;
     const daysSinceLastAction = Math.floor(
-      (now.getTime() - new Date(c.lastActionDate || c.receivedDate).getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - new Date(lastAction).getTime()) / (1000 * 60 * 60 * 24)
     );
 
     const msUntilExpected = new Date(c.expectedDisposalDate).getTime() - now.getTime();
@@ -41,7 +58,7 @@ export const runSlaChecks = async () => {
         alertType: 'pending_reminder',
         caseId: c._id,
         institutionId: c.institution,
-        message: `Pending Reminder: Case ${c.caseId} has had no action for ${daysSinceLastAction} days.`,
+        message: `Pending Reminder: Case ${c.caseId} has had no progress recorded for ${daysSinceLastAction} days.`,
         severity: 'low',
         targetRoles: ['bureau_officer'],
         assignedOfficerId: c.assignedOfficer,
@@ -69,8 +86,19 @@ export const runSlaChecks = async () => {
     if (daysUntilExpected < 0) {
       const daysOverdue = Math.abs(daysUntilExpected);
 
+      // Resolve stale 'due_soon' alert now that case has breached
+      await Alert.updateMany(
+        { case: c._id, alertType: 'due_soon', resolvedAt: { $exists: false } },
+        { resolvedAt: now }
+      );
+
       if (daysOverdue > rule.escalateAfterDaysOverdue || c.status === 'escalated') {
-        // Escalation: overdue > 7 days
+        // Resolve breach in favor of critical escalation
+        await Alert.updateMany(
+          { case: c._id, alertType: 'breach', resolvedAt: { $exists: false } },
+          { resolvedAt: now }
+        );
+
         await createOrUpdateAlert({
           alertType: 'escalation',
           caseId: c._id,
@@ -83,7 +111,7 @@ export const runSlaChecks = async () => {
         });
         stats.escalations++;
       } else {
-        // Breach: overdue <= 7 days
+        // Overdue <= 7 days: standard SLA breach
         await createOrUpdateAlert({
           alertType: 'breach',
           caseId: c._id,

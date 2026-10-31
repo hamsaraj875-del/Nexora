@@ -57,9 +57,16 @@ export const mockRbCases = [
     },
   ];
 
-// Mock Regulatory Bureau API
+// Mock Regulatory Bureau API (Simulated Demonstration Endpoint)
 router.get('/rb/cases', (req, res) => {
-  res.json({ success: true, count: mockRbCases.length, cases: mockRbCases });
+  res.json({
+    success: true,
+    isSimulated: true,
+    source: 'SIMULATED_MOCK_REGULATORY_BUREAU',
+    notice: 'Demonstration synthetic data for SIH evaluation. Set RB_API_URL and RB_API_KEY for live AICTE RB endpoint.',
+    count: mockRbCases.length,
+    cases: mockRbCases,
+  });
 });
 
 export const mockPgrcCases = [
@@ -103,9 +110,16 @@ export const mockPgrcCases = [
     },
   ];
 
-// Mock Public Grievance Redressal Cell API
+// Mock Public Grievance Redressal Cell API (Simulated Demonstration Endpoint)
 router.get('/pgrc/cases', (req, res) => {
-  res.json({ success: true, count: mockPgrcCases.length, grievances: mockPgrcCases });
+  res.json({
+    success: true,
+    isSimulated: true,
+    source: 'SIMULATED_MOCK_PGRC',
+    notice: 'Demonstration synthetic data for SIH evaluation. Set PGRC_API_URL and PGRC_API_KEY for live AICTE PGRC endpoint.',
+    count: mockPgrcCases.length,
+    grievances: mockPgrcCases,
+  });
 });
 
 export default router;

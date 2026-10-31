@@ -54,8 +54,18 @@ export const officerApi = {
     const res = await apiClient.get(`/officer/overlaps/${id}`);
     return res.data;
   },
+  getOverlapExplanations: async (id) => {
+  const res = await apiClient.get(
+    `/officer/overlaps/${id}/explanations`
+  );
+  return res.data;
+  },
   resolveOverlap: async (id, data) => {
     const res = await apiClient.post(`/officer/overlaps/${id}/resolve`, data);
+    return res.data;
+  },
+  linkOverlapCases: async (data) => {
+    const res = await apiClient.post('/officer/overlaps/link', data);
     return res.data;
   },
 
@@ -66,6 +76,10 @@ export const officerApi = {
   },
   confirmMatch: async (caseId, data) => {
     const res = await apiClient.post(`/officer/match-review/${caseId}/confirm`, data);
+    return res.data;
+  },
+  rejectMatch: async (caseId, data = {}) => {
+    const res = await apiClient.post(`/officer/match-review/${caseId}/reject`, data);
     return res.data;
   },
 

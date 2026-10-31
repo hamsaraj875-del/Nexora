@@ -97,6 +97,57 @@ const CATEGORIES = [
   'Harassment',
 ];
 
+const COMPLAINT_DESCRIPTION_TEMPLATES = {
+  'Fee Issues': [
+    'The complainant reports that fees were collected beyond the approved schedule and requests verification of the institution fee records.',
+    'A grievance has been raised regarding delayed fee refunds and the absence of a clear reimbursement timeline.',
+    'The complainant questions additional charges collected during the academic year and seeks an official fee breakdown.',
+  ],
+
+  'Faculty Shortage': [
+    'Students report that several subjects have remained without permanent faculty, affecting regular classroom instruction.',
+    'The complaint highlights vacant teaching positions and requests verification of the faculty strength against approved requirements.',
+    'A grievance has been submitted regarding frequent cancellation of lectures due to insufficient teaching staff.',
+  ],
+
+  'Fake Documents': [
+    'The complaint raises concerns about the authenticity of documents submitted to the institution and requests regulatory verification.',
+    'An allegation has been received regarding discrepancies in institutional approval and compliance records.',
+    'The complainant requests an inquiry into potentially inconsistent certificates and supporting institutional documents.',
+  ],
+
+  'Infrastructure': [
+    'Students report inadequate laboratory facilities and request inspection of the equipment available for practical sessions.',
+    'The complaint identifies concerns about classroom capacity, building maintenance and the availability of essential facilities.',
+    'A grievance has been raised regarding laboratory safety and insufficient infrastructure for the approved intake.',
+  ],
+
+  'Admission Irregularities': [
+    'The complainant alleges discrepancies in the admission process and requests verification of admission records.',
+    'Concerns have been raised regarding admissions beyond the approved intake capacity.',
+    'The complaint requests an inquiry into admission procedures and compliance with applicable eligibility requirements.',
+  ],
+
+  'Harassment': [
+    'A confidential grievance has been submitted alleging inappropriate conduct towards a student and requesting an impartial inquiry.',
+    'The complainant raises concerns about repeated intimidation and requests examination of the institution grievance mechanism.',
+    'A complaint has been received regarding alleged misconduct on campus and the handling of the reported incident.',
+  ],
+};
+
+const generateComplaintDescription = (category, institutionName, index) => {
+  const templates = COMPLAINT_DESCRIPTION_TEMPLATES[category];
+
+  if (!templates) {
+    return `A complaint concerning ${category.toLowerCase()} has been submitted for ${institutionName}. Regulatory review has been requested.`;
+  }
+
+  const description = templates[index % templates.length];
+
+  return `${description} The matter relates to ${institutionName}.`;
+};
+
+
 export const seedDatabase = async (shouldDisconnect = true) => {
   ensureNotProduction();
   console.log('[Seed] Starting database seed...');
@@ -481,7 +532,7 @@ export const seedDatabase = async (shouldDisconnect = true) => {
       matchStatus: 'matched',
       matchScore: 100,
       category: CATEGORIES[i % CATEGORIES.length],
-      description: `Formal complaint regarding ${CATEGORIES[i % CATEGORIES.length].toLowerCase()} at ${inst.name}. Verification documents requested from principal.`,
+      description: generateComplaintDescription(CATEGORIES[i % CATEGORIES.length], inst.name, i),
       complainantType: ['Student', 'Faculty', 'Parent', 'Anonymous'][i % 4],
       receivedDate: recDate,
       status,

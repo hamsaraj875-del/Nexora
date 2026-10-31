@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCheck,
   CheckCircle2,
+  XCircle,
   Sparkles,
   MapPin,
   ShieldCheck,
@@ -12,6 +13,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { officerApi } from '../../../shared/api/officerApi';
+import { bureauApi } from '../../../shared/api/bureauApi';
 import { BureauBadge } from '../../../shared/components/BureauBadge';
 import { SkeletonLoader } from '../../../shared/components/SkeletonLoader';
 
@@ -20,24 +22,60 @@ export function OfficerMatchReviewPage() {
   const [activeTab, setActiveTab] = useState('Pending');
   const [remarks, setRemarks] = useState('');
   const [confirmingId, setConfirmingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
+
+  const isBureau = typeof window !== 'undefined' && window.location.pathname.startsWith('/bureau');
+  const api = isBureau ? bureauApi : officerApi;
+  const queryKey = isBureau ? ['bureau-match-review'] : ['officer-match-review'];
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['officer-match-review'],
-    queryFn: officerApi.getMatchReviewQueue,
+    queryKey,
+    queryFn: api.getMatchReviewQueue,
   });
 
   const confirmMutation = useMutation({
     mutationFn: ({ caseId, institutionId, remarks }) =>
-      officerApi.confirmMatch(caseId, { institutionId, remarks }),
+      api.confirmMatch(caseId, { institutionId, remarks }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['officer-match-review']);
+      queryClient.invalidateQueries(queryKey);
       setConfirmingId(null);
       setRemarks('');
       refetch();
     },
   });
 
-  const items = data?.data || [];
+  const rejectMutation = useMutation({
+    mutationFn: ({ caseId, remarks }) =>
+      api.rejectMatch(caseId, { remarks }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(queryKey);
+      setRejectingId(null);
+      refetch();
+    },
+  });
+
+  const rawItems = data?.data || [];
+
+  // Normalize shape: backend returns { case, currentScore, matchStatus, suggestions } or flat case
+  const items = rawItems.map((entry) => {
+    const c = entry.case || entry;
+    const suggestions = entry.suggestions || [];
+    const topSuggested = suggestions[0]?.institution || c.institution || null;
+    return {
+      _id: c._id,
+      caseId: c.caseId,
+      rawInstitutionName: c.rawInstitutionName,
+      rawCity: c.rawCity,
+      rawState: c.rawState,
+      category: c.category,
+      matchStatus: entry.matchStatus || c.matchStatus,
+      matchScore: entry.currentScore !== undefined ? entry.currentScore : c.matchScore,
+      currentBureau: c.currentBureau,
+      suggestedInstitution: topSuggested,
+      suggestions,
+    };
+  });
+
   const filtered = items.filter((item) => {
     if (activeTab === 'Pending') return item.matchStatus === 'review';
     if (activeTab === 'Confirmed') return item.matchStatus === 'matched';
@@ -50,7 +88,15 @@ export function OfficerMatchReviewPage() {
     confirmMutation.mutate({
       caseId,
       institutionId,
-      remarks: remarks || 'Confirmed by officer in Match Review queue',
+      remarks: remarks || 'Confirmed by authorized operator in Match Review queue',
+    });
+  };
+
+  const handleReject = (caseId) => {
+    setRejectingId(caseId);
+    rejectMutation.mutate({
+      caseId,
+      remarks: 'Rejected suggestion; marked as unmatched for physical registry review',
     });
   };
 
@@ -60,97 +106,128 @@ export function OfficerMatchReviewPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span>Fuzzy Match Verification Queue</span>
+            <span>Institution Match Review Queue</span>
             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
-              AI Institution Normalizer
+              {filtered.length} In Queue
             </span>
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Validate automated fuzzy-name matching between raw complaint submissions and registered AICTE permanent institutes.
+            Audit low-confidence institution names against the AICTE Permanent Registry before case grouping.
           </p>
         </div>
 
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#101D35] hover:bg-[#172846] border border-slate-700/80 text-xs font-medium text-slate-300 hover:text-white transition cursor-pointer self-start sm:self-auto"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-blue-400' : ''}`} />
-          <span>Refresh Queue</span>
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 mb-4 shrink-0">
-        {['Pending', 'Confirmed', 'Unmatched'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-              activeTab === tab
-                ? 'bg-blue-600 text-white font-bold shadow-sm'
-                : 'bg-[#101D35] text-slate-300 hover:text-white border border-slate-700/80'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* Content Area */}
-      <div className="flex-1 min-h-0 bg-[#0B1730] border border-slate-700/80 rounded-2xl overflow-hidden flex flex-col">
-        {isLoading ? (
-          <div className="p-4">
-            <SkeletonLoader count={6} />
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg bg-[#0B1730] border border-slate-700/80 p-0.5 text-xs">
+            {['Pending', 'Confirmed', 'Unmatched', 'All'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 py-1 rounded-md font-medium transition cursor-pointer ${
+                  activeTab === tab ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
+
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="p-2 rounded-lg bg-[#101D35] hover:bg-[#172846] border border-slate-700/80 text-slate-300 hover:text-white transition cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-blue-400' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Main Container */}
+      <div className="flex-1 bg-[#0B1730] border border-slate-700/80 rounded-2xl p-4 overflow-y-auto">
+        {isLoading ? (
+          <SkeletonLoader count={6} />
         ) : filtered.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-            <CheckCheck className="w-12 h-12 text-slate-500 mb-2" />
-            <h3 className="text-base font-bold text-white">No dockets in {activeTab} review</h3>
-            <p className="text-xs text-slate-400 mt-1">All institution references are currently classified.</p>
+          <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+            <CheckCheck className="w-12 h-12 text-blue-400/50 mb-2" />
+            <h3 className="text-base font-bold text-white">Queue is Clear</h3>
+            <p className="text-xs text-slate-400 mt-1">No cases require manual institution verification in this tab.</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="space-y-3">
             {filtered.map((item) => (
               <div
                 key={item._id}
-                className="p-4 rounded-xl bg-[#101D35] border border-slate-700/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                className="p-4 rounded-xl bg-[#101D35] border border-slate-700/80 hover:border-blue-500/40 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4"
               >
-                <div className="space-y-1.5 min-w-0">
+                <div className="space-y-2 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-blue-400">{item.caseId}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#172846] text-slate-300">
                       {item.category}
                     </span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                      Score: {item.matchScore}%
+                      Confidence: {item.matchScore}%
                     </span>
+                    {item.currentBureau && (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                        {item.currentBureau.name || item.currentBureau.code}
+                      </span>
+                    )}
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">Raw Input Name:</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Incoming Raw Input Name:</span>
                     <h3 className="text-sm font-semibold text-white">{item.rawInstitutionName}</h3>
                     <div className="text-[10px] text-slate-400">
                       City: {item.rawCity || 'N/A'} &bull; State: {item.rawState || 'N/A'}
                     </div>
                   </div>
 
-                  {item.suggestedInstitution && (
-                    <div className="p-2.5 rounded-lg bg-[#101D35] border border-slate-700/80 text-xs">
+                  {item.suggestedInstitution ? (
+                    <div className="p-2.5 rounded-lg bg-[#0B1730] border border-slate-700/80 text-xs">
                       <span className="text-[10px] text-blue-400 uppercase font-bold flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
-                        Suggested Permanent Registry Match:
+                        Suggested AICTE Master Registry Match:
                       </span>
-                      <div className="font-semibold text-white mt-0.5">{item.suggestedInstitution.name}</div>
-                      <div className="text-[10px] text-slate-400">
-                        AICTE ID: {item.suggestedInstitution.aictePermanentId} &bull; Region: {item.suggestedInstitution.region}
+
+                      <div className="font-semibold text-white mt-0.5">
+                        {item.suggestedInstitution.name}
                       </div>
+
+                      <div className="text-[10px] text-slate-400">
+                        AICTE Permanent ID: {item.suggestedInstitution.aictePermanentId}
+                        &bull; Region: {item.suggestedInstitution.region || 'N/A'}
+                        &bull; City: {item.suggestedInstitution.city || 'N/A'}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                      <div className="flex items-center gap-2 text-amber-300 text-xs font-semibold">
+                        <AlertCircle className="w-4 h-4" />
+                        No reliable match found
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        No institution meets the matching criteria. Manual verification
+                        against the AICTE Master Registry is required.
+                      </p>
                     </div>
                   )}
                 </div>
 
                 {item.suggestedInstitution && item.matchStatus !== 'matched' && (
-                  <div className="shrink-0 self-end lg:self-center">
+                  <div className="shrink-0 flex items-center gap-2 self-end lg:self-center">
+                    <button
+                      onClick={() => handleReject(item._id)}
+                      disabled={rejectMutation.isPending && rejectingId === item._id}
+                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {rejectMutation.isPending && rejectingId === item._id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                      )}
+                      <span>Reject</span>
+                    </button>
+
                     <button
                       onClick={() => handleConfirm(item._id, item.suggestedInstitution._id)}
                       disabled={confirmMutation.isPending && confirmingId === item._id}

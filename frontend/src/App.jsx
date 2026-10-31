@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
+import { BureauOverlapCaseDetailPage } from './portals/bureau/pages/BureauOverlapCaseDetailPage';
 import { ProtectedRoute } from './shared/components/ProtectedRoute';
 import { Loader2 } from 'lucide-react';
 
@@ -36,14 +37,6 @@ import { BureauOverlapsPage } from './portals/bureau/pages/BureauOverlapsPage';
 import { BureauImportsPage } from './portals/bureau/pages/BureauImportsPage';
 import { BureauAlertsPage } from './portals/bureau/pages/BureauAlertsPage';
 
-// ── Student Portal ───────────────────────────────────────────────────────────
-import { StudentLayout } from './portals/student/StudentLayout';
-import { StudentLoginPage } from './portals/student/pages/StudentLoginPage';
-import { StudentComplaintsPage } from './portals/student/pages/StudentComplaintsPage';
-import { StudentNewComplaintPage } from './portals/student/pages/StudentNewComplaintPage';
-import { StudentNeedsReplyPage } from './portals/student/pages/StudentNeedsReplyPage';
-import { StudentClosedPage } from './portals/student/pages/StudentClosedPage';
-import { StudentCaseDetailPage } from './portals/student/pages/StudentCaseDetailPage';
 
 // ── Global loading fallback ──────────────────────────────────────────────────
 function PageLoader() {
@@ -79,7 +72,6 @@ export function App() {
                   <Route path="/login" element={<LandingLoginPage />} />
                   <Route path="/officer/login" element={<LandingLoginPage defaultPortal="officer" />} />
                   <Route path="/bureau/login" element={<LandingLoginPage defaultPortal="bureau" />} />
-                  <Route path="/student/login" element={<LandingLoginPage defaultPortal="student" />} />
 
                   {/* ── Officer Portal ──────────────────────────────────── */}
                   <Route
@@ -118,27 +110,13 @@ export function App() {
                     <Route path="cases/:id" element={<BureauCaseDetailPage />} />
                     <Route path="attention" element={<BureauAttentionPage />} />
                     <Route path="overlaps" element={<BureauOverlapsPage />} />
+                    <Route path="overlaps/cases/:id" element={<BureauOverlapCaseDetailPage />} />
                     <Route path="imports" element={<BureauImportsPage />} />
+                    <Route path="match-review" element={<OfficerMatchReviewPage />} />
                     <Route path="alerts" element={<BureauAlertsPage />} />
                     <Route path="*" element={<Navigate to="/bureau" replace />} />
                   </Route>
 
-                  {/* ── Student Portal ──────────────────────────────────── */}
-                  <Route
-                    path="/student"
-                    element={
-                      <ProtectedRoute portal="student">
-                        <StudentLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route index element={<StudentComplaintsPage />} />
-                    <Route path="new" element={<StudentNewComplaintPage />} />
-                    <Route path="needs-reply" element={<StudentNeedsReplyPage />} />
-                    <Route path="closed" element={<StudentClosedPage />} />
-                    <Route path="cases/:id" element={<StudentCaseDetailPage />} />
-                    <Route path="*" element={<Navigate to="/student" replace />} />
-                  </Route>
 
                   {/* ── Global fallback ─────────────────────────────────── */}
                   <Route path="*" element={<Navigate to="/login" replace />} />

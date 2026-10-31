@@ -9,9 +9,13 @@ export const getDashboardSummary = async (req, res, next) => {
 
     // Regional officer filter if applicable
     const filter = {};
+    const overlapFilter = { status: 'open' };
+
     if (req.user?.role === 'regional_officer' && req.user?.region) {
       const institutionsInRegion = await Institution.find({ region: req.user.region }).select('_id');
-      filter.institution = { $in: institutionsInRegion.map((i) => i._id) };
+      const instIds = institutionsInRegion.map((i) => i._id);
+      filter.institution = { $in: instIds };
+      overlapFilter.institution = { $in: instIds };
     }
 
     const [
@@ -39,15 +43,19 @@ export const getDashboardSummary = async (req, res, next) => {
         status: { $in: ['pending', 'under_process', 'needs_info', 'transferred', 'escalated'] },
         expectedDisposalDate: { $lt: now },
       }),
-      OverlapGroup.countDocuments({ status: 'open' }),
+      OverlapGroup.countDocuments(overlapFilter),
     ]);
 
+    const totalCases = totalReceived;
+    const openCases = pending + underProcess + needsInfo + transferred + escalated;
     const disposalRate = totalReceived > 0 ? ((disposed / totalReceived) * 100).toFixed(1) : 0;
 
     res.json({
       success: true,
       data: {
         totalReceived,
+        totalCases,
+        openCases,
         pending,
         underProcess,
         needsInfo,
@@ -68,7 +76,14 @@ export const getDashboardSummary = async (req, res, next) => {
 export const getBureauWorkload = async (req, res, next) => {
   try {
     const bureaus = await Bureau.find().select('name code type');
-    const cases = await Case.find().populate('currentBureau', 'code name');
+
+    const caseFilter = {};
+    if (req.user?.role === 'regional_officer' && req.user?.region) {
+      const institutionsInRegion = await Institution.find({ region: req.user.region }).select('_id');
+      caseFilter.institution = { $in: institutionsInRegion.map((i) => i._id) };
+    }
+
+    const cases = await Case.find(caseFilter).populate('currentBureau', 'code name');
 
     const workload = bureaus.map((b) => {
       const bureauCases = cases.filter(
@@ -109,8 +124,15 @@ export const getBureauWorkload = async (req, res, next) => {
 
 export const getInstitutionStatus = async (req, res, next) => {
   try {
+    const matchStage = { institution: { $ne: null } };
+
+    if (req.user?.role === 'regional_officer' && req.user?.region) {
+      const institutionsInRegion = await Institution.find({ region: req.user.region }).select('_id');
+      matchStage.institution = { $in: institutionsInRegion.map((i) => i._id) };
+    }
+
     const topInstitutions = await Case.aggregate([
-      { $match: { institution: { $ne: null } } },
+      { $match: matchStage },
       {
         $group: {
           _id: '$institution',
@@ -170,8 +192,102 @@ export const getInstitutionStatus = async (req, res, next) => {
 /**
  * Bureau Dashboard KPI summary (for logged-in bureau officer / data operator's bureau)
  * GET /api/bureau/dashboard
- * Counts: assigned, pending, in progress, needs info, overdue, due soon, done this month
  */
+
+export const getMonthlyComplaintTrends = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const startDate = new Date(
+      now.getFullYear(),
+      now.getMonth() - 5,
+      1
+    );
+
+    const filter = {
+      $or: [
+        { receivedDate: { $gte: startDate } },
+        { disposedDate: { $gte: startDate } },
+      ],
+    };
+
+    // Preserve the regional officer's existing data restrictions.
+    if (req.user?.role === 'regional_officer' && req.user?.region) {
+      const institutionsInRegion = await Institution.find({
+        region: req.user.region,
+      }).select('_id');
+
+      filter.institution = {
+        $in: institutionsInRegion.map((institution) => institution._id),
+      };
+    }
+
+    const cases = await Case.find(filter)
+      .select('receivedDate disposedDate status')
+      .lean();
+
+    const months = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(
+        now.getFullYear(),
+        now.getMonth() - i,
+        1
+      );
+
+      months.push({
+        month: date.toLocaleString('en-US', { month: 'short' }),
+        year: date.getFullYear(),
+        received: 0,
+        resolved: 0,
+      });
+    }
+
+    const monthMap = new Map(
+      months.map((month) => [
+        `${month.year}-${month.month}`,
+        month,
+      ])
+    );
+
+    const getMonthKey = (value) => {
+      const date = new Date(value);
+      const month = date.toLocaleString('en-US', { month: 'short' });
+      return `${date.getFullYear()}-${month}`;
+    };
+
+    for (const complaint of cases) {
+      const receivedMonth = monthMap.get(
+        getMonthKey(complaint.receivedDate)
+      );
+
+      if (receivedMonth) {
+        receivedMonth.received++;
+      }
+
+      if (complaint.status === 'disposed' && complaint.disposedDate) {
+        const resolvedMonth = monthMap.get(
+          getMonthKey(complaint.disposedDate)
+        );
+
+        if (resolvedMonth) {
+          resolvedMonth.resolved++;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: months.map(({ month, year, received, resolved }) => ({
+        month: `${month} ${year}`,
+        received,
+        resolved,
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getBureauDashboard = async (req, res, next) => {
   try {
     const userBureauId = req.user?.bureau?._id
@@ -254,4 +370,5 @@ export default {
   getBureauWorkload,
   getInstitutionStatus,
   getBureauDashboard,
+  getMonthlyComplaintTrends,
 };

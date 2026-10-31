@@ -11,11 +11,18 @@ import { runSlaChecks } from '../services/sla.js';
 // Multer memory storage with file type (csv, xlsx) and size (5 MB) limits
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname || '').toLowerCase();
-  const allowedExts = ['.csv', '.xlsx', '.xls'];
+  if (ext === '.xls') {
+    const err = new Error('Legacy Excel (.xls) binary files are not supported. Please convert and upload as .xlsx or .csv.');
+    err.statusCode = 400;
+    return cb(err, false);
+  }
+  const allowedExts = ['.csv', '.xlsx'];
   if (allowedExts.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only CSV and XLSX files are permitted (max 5 MB).'), false);
+    const err = new Error('Invalid file type. Only CSV (.csv) and Excel (.xlsx) files are permitted (max 5 MB).');
+    err.statusCode = 400;
+    cb(err, false);
   }
 };
 
@@ -29,7 +36,7 @@ export const uploadMiddleware = multer({
 export const uploadBulkFile = async (req, res, next) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Please upload a CSV or Excel file.' });
+      return res.status(400).json({ success: false, message: 'Please upload a CSV or XLSX file.' });
     }
 
     const { sourceBureau = 'BULK_UPLOAD' } = req.body;
@@ -44,7 +51,7 @@ export const uploadBulkFile = async (req, res, next) => {
       sourceSystem: sourceBureau,
       filename: req.file.originalname,
       totalRows: result.total,
-      successRows: result.created + result.updated,
+      successRows: result.inserted + result.updated,
       failedRows: result.failed,
       errors: result.errors,
       uploadedBy: req.user?._id,
@@ -52,7 +59,7 @@ export const uploadBulkFile = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: `Processed ${result.total} rows (${result.created} created, ${result.updated} updated, ${result.failed} failed)`,
+      message: `Processed ${result.total} records: ${result.inserted} inserted, ${result.updated} updated, ${result.skipped} skipped, ${result.unmatched} unmatched, ${result.failed} failed.`,
       batchId: batch._id,
       summary: result,
     });

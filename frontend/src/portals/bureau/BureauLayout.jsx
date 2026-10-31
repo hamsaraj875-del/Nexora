@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   GitMerge,
   UploadCloud,
+  CheckCheck,
   Bell,
   LogOut,
   Menu,
@@ -23,12 +24,15 @@ export function BureauLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isDataOperator = user?.role === 'data_operator';
+
   const navItems = [
     { name: 'Dashboard', path: '/bureau', icon: LayoutDashboard, exact: true },
     { name: 'My Cases', path: '/bureau/cases', icon: Briefcase },
     { name: 'Needs Attention', path: '/bureau/attention', icon: AlertTriangle },
     { name: 'Overlaps (Read-Only)', path: '/bureau/overlaps', icon: GitMerge },
     { name: 'Import Data', path: '/bureau/imports', icon: UploadCloud },
+    { name: 'Match Review', path: '/bureau/match-review', icon: CheckCheck },
     { name: 'Alerts', path: '/bureau/alerts', icon: Bell },
   ];
 

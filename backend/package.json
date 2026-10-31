@@ -9,7 +9,7 @@
     "dev": "node --watch src/server.js",
     "mongo": "node dev-mongo.js",
     "seed": "node src/seed/seedData.js",
-    "test": "node --test src/tests/*.test.js"
+    "test": "node --test --test-concurrency=1 src/tests/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,6 +26,7 @@
     "mongoose": "^8.9.2",
     "multer": "^2.5.0",
     "node-cron": "^3.0.3",
+    "openai": "^7.47.0",
     "pdfkit": "^0.16.0",
     "zod": "^3.24.1"
   },

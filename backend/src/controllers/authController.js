@@ -67,6 +67,73 @@ export const login = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/auth/register
+ * Self-registration for student complainants only.
+ * Officials are created by administrators; this endpoint enforces role=student only.
+ */
+export const register = async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Full name is required.' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
+    }
+    if (!password || password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this email address already exists.',
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      name: name.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      role: 'student',
+      isActive: true,
+    });
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+        portal: 'student',
+      },
+      env.JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Account created successfully. You can now file complaints.',
+      token,
+      portal: 'student',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: 'student',
+        portal: 'student',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getMe = async (req, res) => {
   const userPortal = portalForRole(req.user.role);
   return res.json({
@@ -83,4 +150,4 @@ export const getMe = async (req, res) => {
   });
 };
 
-export default { login, getMe };
+export default { login, register, getMe };

@@ -1,3 +1,4 @@
+
 import { Router } from 'express';
 import {
   getBureauCases,
@@ -10,17 +11,26 @@ import {
   escalateBureauCase,
 } from '../controllers/caseController.js';
 import { getBureauDashboard } from '../controllers/dashboardController.js';
-import { getOverlaps } from '../controllers/overlapController.js';
 import {
   uploadBulkFile,
   runManualSync,
   uploadMiddleware,
 } from '../controllers/importSyncController.js';
 import {
+  getOverlaps,
+  getOverlapCaseReadOnly,
+  getOverlapExplanations,
+} from '../controllers/overlapController.js';
+import {
   getAlerts,
   markAlertAsRead,
 } from '../controllers/alertController.js';
 import { getBureaus } from '../controllers/adminController.js';
+import {
+  getMatchReviewQueue,
+  confirmMatch,
+  rejectMatch,
+} from '../controllers/matchReviewController.js';
 
 const router = Router();
 
@@ -49,12 +59,21 @@ router.get('/overlaps', (req, res, next) => {
   req.query.mine = 'true';
   return getOverlaps(req, res, next);
 });
+router.get('/overlaps/:id/explanations', getOverlapExplanations);
+router.get('/overlaps/cases/:caseId', getOverlapCaseReadOnly);
 
 // ============================================================================
 // IMPORT & DATA SYNC (bureau_officer & data_operator)
 // ============================================================================
 router.post('/import/upload', uploadMiddleware.single('file'), uploadBulkFile);
 router.post('/import/sync/run', runManualSync);
+
+// ============================================================================
+// MATCH REVIEW (data_operator & bureau_officer)
+// ============================================================================
+router.get('/match-review', getMatchReviewQueue);
+router.post('/match-review/:caseId/confirm', confirmMatch);
+router.post('/match-review/:caseId/reject', rejectMatch);
 
 // ============================================================================
 // ALERTS (MY BUREAU ONLY)

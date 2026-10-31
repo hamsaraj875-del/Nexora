@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../shared/api/authApi';
 import { portalForRole } from '../shared/utils/portal';
@@ -21,7 +22,6 @@ export const AuthProvider = ({ children }) => {
     return {
       officer: getStored('officer'),
       bureau: getStored('bureau'),
-      student: getStored('student'),
     };
   });
 
@@ -34,6 +34,11 @@ export const AuthProvider = ({ children }) => {
       const res = await authApi.login({ email, password, portal });
       if (res?.success && res?.token) {
         const assignedPortal = res.portal || portalForRole(res.user?.role) || portal;
+
+        if (!['officer', 'bureau'].includes(assignedPortal)) {
+          throw new Error('Invalid portal for this account');
+        }
+
         localStorage.setItem(`${assignedPortal}_token`, res.token);
         localStorage.setItem(`${assignedPortal}_user`, JSON.stringify(res.user));
 
@@ -42,9 +47,7 @@ export const AuthProvider = ({ children }) => {
           [assignedPortal]: { token: res.token, user: res.user },
         }));
 
-        // Clear cached data from previous user so fresh data loads
         queryClient.clear();
-
         return res.user;
       }
       throw new Error(res?.message || 'Login failed');
@@ -54,7 +57,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = useCallback((portal) => {
-    // Clear all cached query data to prevent stale data leaks
     queryClient.clear();
 
     if (portal && sessions[portal]) {
@@ -66,19 +68,19 @@ export const AuthProvider = ({ children }) => {
       }));
       window.location.href = `/${portal}/login`;
     } else {
-      // Clear all
-      ['officer', 'bureau', 'student'].forEach((p) => {
+      ['officer', 'bureau'].forEach((p) => {
         localStorage.removeItem(`${p}_token`);
         localStorage.removeItem(`${p}_user`);
       });
+
       setSessions({
         officer: { token: null, user: null },
         bureau: { token: null, user: null },
-        student: { token: null, user: null },
       });
+
       window.location.href = '/login';
     }
-  }, [sessions]);
+  }, [sessions, queryClient]);
 
   const getPortalAuth = useCallback((portal) => {
     const session = sessions[portal] || { token: null, user: null };
