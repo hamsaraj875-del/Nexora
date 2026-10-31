@@ -378,7 +378,7 @@ test('Test 6: Overlap dismissal persistence prevents repeat alerts on recalculat
     institution: instNorthern._id,
     rawInstitutionName: instNorthern.name,
     category: 'Fee Issues',
-    description: 'Fee collection audit query',
+    description: 'Excess capitation fee collected from students and refund pending after admission cancellation.',
     receivedDate: new Date(),
     expectedDisposalDate: new Date(Date.now() + 30 * 86400000),
     status: 'pending',
@@ -392,7 +392,7 @@ test('Test 6: Overlap dismissal persistence prevents repeat alerts on recalculat
     institution: instNorthern._id,
     rawInstitutionName: instNorthern.name,
     category: 'Fee Issues',
-    description: 'Fee structure explanation requested by student',
+    description: 'Student reports excess capitation fee collection and refund pending after admission cancellation.',
     receivedDate: new Date(),
     expectedDisposalDate: new Date(Date.now() + 30 * 86400000),
     status: 'under_process',
@@ -625,4 +625,281 @@ test('Test 11: Import error reporting for invalid dates and rejection of legacy 
     resXls.body.message.includes('Legacy Excel (.xls) binary files are not supported'),
     'Actionable error message advising .xlsx or .csv must be returned'
   );
+});
+test('Test 12: Overlap resolution enforces bureau-level authorization without modifying complaint audit history', async () => {
+  const tokenRB = createToken(bureauOfficerRB);
+  const tokenPGRC = createToken(bureauOfficerPGRC);
+
+  // Create an RB-only complaint.
+  const rbCase = await Case.create({
+    caseId: await generateCaseId('RB'),
+    sourceSystem: 'RB',
+    sourceCaseRef: 'OVERLAP-AUTH-RB-01',
+    institution: instSouthern._id,
+    rawInstitutionName: instSouthern.name,
+    category: 'Fee Issues',
+    description: 'Test complaint for overlap authorization',
+    receivedDate: new Date(),
+    expectedDisposalDate: new Date(Date.now() + 30 * 86400000),
+    status: 'pending',
+    currentBureau: bureauRB._id,
+  });
+
+  // Create an overlap group containing only the RB complaint.
+  const group = await OverlapGroup.create({
+    institution: instSouthern._id,
+    cases: [rbCase._id],
+    status: 'open',
+    severity: 'low',
+    overlapType: 'different_complaints',
+    reason: 'Authorization regression test',
+    candidatePairs: [],
+  });
+
+  // 1. PGRC officer must not resolve an RB-only overlap group.
+  const forbiddenResponse = await request(app)
+    .post(`/api/officer/overlaps/${group._id}/resolve`)
+    .set('Authorization', `Bearer ${tokenPGRC}`)
+    .send({
+      status: 'coordinated',
+      remarks: 'Attempt by an unauthorised bureau',
+    });
+
+  assert.strictEqual(
+    forbiddenResponse.statusCode,
+    403,
+    'PGRC officer must not resolve an RB-only overlap group'
+  );
+
+  // Confirm the failed attempt did not change the group.
+  const unchangedGroup = await OverlapGroup.findById(group._id);
+
+  assert.strictEqual(unchangedGroup.status, 'open');
+  assert.ok(!unchangedGroup.resolvedBy, 'Failed authorization must not set resolvedBy');
+  assert.ok(!unchangedGroup.resolvedAt, 'Failed authorization must not set resolvedAt');
+  assert.ok(!unchangedGroup.resolutionRemarks, 'Failed authorization must not set resolution remarks');
+
+  // 2. RB officer must be allowed to resolve the same group.
+  const actionsBefore = await CaseAction.countDocuments({
+    case: rbCase._id,
+  });
+
+  const allowedResponse = await request(app)
+    .post(`/api/officer/overlaps/${group._id}/resolve`)
+    .set('Authorization', `Bearer ${tokenRB}`)
+    .send({
+      status: 'coordinated',
+      remarks: 'Reviewed and coordinated by the RB officer.',
+    });
+
+
+  assert.strictEqual(
+  allowedResponse.statusCode,
+  200,
+  'RB officer should resolve an overlap group represented by RB'
+  );
+  const resolvedGroup = await OverlapGroup.findById(group._id);
+
+  assert.strictEqual(resolvedGroup.status, 'coordinated');
+  assert.strictEqual(
+    resolvedGroup.resolutionRemarks,
+    'Reviewed and coordinated by the RB officer.'
+  );
+  assert.ok(resolvedGroup.resolvedBy);
+  assert.ok(resolvedGroup.resolvedAt);
+
+  // 3. Group-level resolution must not create a CaseAction on the complaint.
+  const actionsAfter = await CaseAction.countDocuments({
+    case: rbCase._id,
+  });
+
+  assert.strictEqual(
+    actionsAfter,
+    actionsBefore,
+    'Overlap resolution must not create CaseAction records on complaints'
+  );
+});
+
+test('Test 13: System re-evaluation records candidates_found without resolving the group', async () => {
+  const institution = await Institution.create({
+    name: 'Overlap Evaluation Candidate Test',
+    normalizedName: 'overlap evaluation candidate test',
+    aictePermanentId: '1-30000013',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    region: 'Southern',
+  });
+
+  const caseA = await Case.create({
+    caseId: await generateCaseId('RB'),
+    sourceSystem: 'RB',
+    sourceCaseRef: 'SYSTEM-CANDIDATE-RB',
+    institution: institution._id,
+    rawInstitutionName: institution.name,
+    category: 'Fee Issues',
+    description: 'Student paid excess capitation fee and requested a refund after admission cancellation.',
+    receivedDate: new Date(),
+    expectedDisposalDate: new Date(Date.now() + 30 * 86400000),
+    status: 'pending',
+    currentBureau: bureauRB._id,
+  });
+
+  const caseB = await Case.create({
+    caseId: await generateCaseId('PGRC'),
+    sourceSystem: 'PGRC',
+    sourceCaseRef: 'SYSTEM-CANDIDATE-PGRC',
+    institution: institution._id,
+    rawInstitutionName: institution.name,
+    category: 'Fee Issues',
+    description: 'Student reported excess capitation fee payment and pending refund after admission cancellation.',
+    receivedDate: new Date(),
+    expectedDisposalDate: new Date(Date.now() + 30 * 86400000),
+    status: 'under_process',
+    currentBureau: bureauPGRC._id,
+  });
+
+  const group = await checkInstitutionOverlap(institution._id);
+
+  assert.ok(group);
+  assert.ok(group.candidatePairs.length > 0);
+  assert.strictEqual(group.status, 'open');
+  assert.strictEqual(group.systemEvaluation.outcome, 'candidates_found');
+  assert.ok(group.systemEvaluation.evaluatedAt);
+  assert.ok(!group.resolvedBy);
+  assert.ok(!group.resolvedAt);
+  assert.ok(!group.resolutionRemarks);
+
+  assert.ok(caseA && caseB);
+});
+
+test('Test 14: No qualifying candidates keeps an existing overlap group open', async () => {
+  const institution = await Institution.create({
+    name: 'Overlap Evaluation No Candidate Test',
+    normalizedName: 'overlap evaluation no candidate test',
+    aictePermanentId: '1-30000014',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    region: 'Southern',
+  });
+
+  const caseA = await Case.create({
+    caseId: await generateCaseId('RB'),
+    sourceSystem: 'RB',
+    sourceCaseRef: 'SYSTEM-NONE-RB',
+    institution: institution._id,
+    rawInstitutionName: institution.name,
+    category: 'Fee Issues',
+    description: 'Hostel caution deposit refund query.',
+    receivedDate: new Date(),
+    expectedDisposalDate: new Date(Date.now() + 30 * 86400000),
+    status: 'pending',
+    currentBureau: bureauRB._id,
+  });
+
+  const caseB = await Case.create({
+    caseId: await generateCaseId('PGRC'),
+    sourceSystem: 'PGRC',
+    sourceCaseRef: 'SYSTEM-NONE-PGRC',
+    institution: institution._id,
+    rawInstitutionName: institution.name,
+    category: 'Infrastructure',
+    description: 'Library roof maintenance and reading room air conditioning repair.',
+    receivedDate: new Date(),
+    expectedDisposalDate: new Date(Date.now() + 30 * 86400000),
+    status: 'under_process',
+    currentBureau: bureauPGRC._id,
+  });
+
+  const existingGroup = await OverlapGroup.create({
+    institution: institution._id,
+    cases: [caseA._id, caseB._id],
+    status: 'open',
+    severity: 'medium',
+    overlapType: 'coordination_required',
+    reason: 'Existing group for no-candidate regression test.',
+    candidatePairs: [],
+  });
+
+  const result = await checkInstitutionOverlap(institution._id);
+
+  assert.strictEqual(result, null);
+
+  const updatedGroup = await OverlapGroup.findById(existingGroup._id);
+
+  assert.strictEqual(updatedGroup.status, 'open');
+  assert.strictEqual(updatedGroup.candidatePairs.length, 0);
+  assert.strictEqual(updatedGroup.systemEvaluation.outcome, 'no_candidates');
+  assert.ok(updatedGroup.systemEvaluation.evaluatedAt);
+  assert.ok(!updatedGroup.resolvedBy);
+  assert.ok(!updatedGroup.resolvedAt);
+  assert.ok(!updatedGroup.resolutionRemarks);
+
+  const activeAlert = await Alert.findOne({
+    overlapGroup: existingGroup._id,
+    alertType: 'overlap',
+    resolvedAt: { $exists: false },
+  });
+
+  assert.ok(activeAlert);
+  assert.ok(activeAlert.message.includes('No qualifying overlap pairs'));
+});
+
+test('Test 15: No cross-bureau cases records system evaluation without human resolution', async () => {
+  const institution = await Institution.create({
+    name: 'Overlap Evaluation Single Bureau Test',
+    normalizedName: 'overlap evaluation single bureau test',
+    aictePermanentId: '1-30000015',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    region: 'Southern',
+  });
+
+  const caseA = await Case.create({
+    caseId: await generateCaseId('RB'),
+    sourceSystem: 'RB',
+    sourceCaseRef: 'SYSTEM-SINGLE-RB',
+    institution: institution._id,
+    rawInstitutionName: institution.name,
+    category: 'Fee Issues',
+    description: 'Refund of excess admission fee.',
+    receivedDate: new Date(),
+    expectedDisposalDate: new Date(Date.now() + 30 * 86400000),
+    status: 'pending',
+    currentBureau: bureauRB._id,
+  });
+
+  const existingGroup = await OverlapGroup.create({
+    institution: institution._id,
+    cases: [caseA._id],
+    status: 'open',
+    severity: 'medium',
+    overlapType: 'coordination_required',
+    reason: 'Existing group for single-bureau regression test.',
+    candidatePairs: [],
+  });
+
+  const result = await checkInstitutionOverlap(institution._id);
+
+  assert.strictEqual(result, null);
+
+  const updatedGroup = await OverlapGroup.findById(existingGroup._id);
+
+  assert.strictEqual(updatedGroup.status, 'open');
+  assert.strictEqual(
+    updatedGroup.systemEvaluation.outcome,
+    'no_cross_bureau_cases'
+  );
+  assert.ok(updatedGroup.systemEvaluation.evaluatedAt);
+  assert.ok(!updatedGroup.resolvedBy);
+  assert.ok(!updatedGroup.resolvedAt);
+  assert.ok(!updatedGroup.resolutionRemarks);
+
+  const activeAlert = await Alert.findOne({
+    overlapGroup: existingGroup._id,
+    alertType: 'overlap',
+    resolvedAt: { $exists: false },
+  });
+
+  assert.ok(activeAlert);
+  assert.ok(activeAlert.message.includes('no longer span multiple bureaus'));
 });

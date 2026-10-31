@@ -19,6 +19,7 @@ import {
 import {
   getOverlaps,
   getOverlapById,
+  getOverlapExplanations,
   resolveOverlap,
   linkOverlapCases,
 } from '../controllers/overlapController.js';
@@ -46,9 +47,9 @@ const router = Router();
 // DASHBOARD
 // ============================================================================
 router.get('/dashboard', async (req, res, next) => {
-  // Can serve combined or summary
   return getDashboardSummary(req, res, next);
 });
+
 router.get('/dashboard/summary', getDashboardSummary);
 router.get('/dashboard/bureau-workload', getBureauWorkload);
 router.get('/dashboard/institution-status', getInstitutionStatus);
@@ -60,7 +61,8 @@ router.get('/cases', getCases);
 router.get('/cases/:id', getCaseById);
 router.get('/cases/:id/history', getCaseHistory);
 
-// Senior management is read-only EXCEPT assign/escalate; regional_officer / super_admin can also assign/escalate
+// Senior management is read-only EXCEPT assign/escalate;
+// regional_officer / super_admin can also assign/escalate.
 router.post('/cases/:id/assign', assignCase);
 router.post('/cases/:id/escalate', escalateCase);
 router.post('/cases/link', linkCases);
@@ -69,6 +71,10 @@ router.post('/cases/link', linkCases);
 // OVERLAPS
 // ============================================================================
 router.get('/overlaps', getOverlaps);
+
+// AI-generated explanations for candidate pairs
+router.get('/overlaps/:id/explanations', getOverlapExplanations);
+
 router.get('/overlaps/:id', getOverlapById);
 router.post('/overlaps/:id/resolve', resolveOverlap);
 router.post('/overlaps/link', linkOverlapCases);

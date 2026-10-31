@@ -1,6 +1,10 @@
+
 import Fuse from 'fuse.js';
 import { Institution } from '../models/Institution.js';
-import { normalizeInstitutionName, normalizeCity } from './normalizer.js';
+import {
+  normalizeInstitutionName,
+  normalizeCity,
+} from './normalizer.js';
 
 export const MATCH_THRESHOLDS = {
   AUTO_MATCH: 90,
@@ -8,15 +12,7 @@ export const MATCH_THRESHOLDS = {
 };
 
 /**
- * Match a raw incoming complaint record to an AICTE Master Institution.
- * @param {Object} input
- * @param {string} [input.aictePermanentId]
- * @param {string} input.rawInstitutionName
- * @param {string} [input.rawCity]
- * @param {string} [input.rawDistrict]
- * @param {string} [input.rawState]
- * @param {string} [input.rawPincode]
- * @returns {Promise<{ institution: Object|null, matchStatus: 'matched'|'review'|'unmatched', matchScore: number, candidates?: Array }>}
+ * Match an incoming complaint to an AICTE Master Institution.
  */
 export const matchInstitution = async (input) => {
   const {
@@ -31,7 +27,11 @@ export const matchInstitution = async (input) => {
   // 1. Exact AICTE Permanent ID match
   if (aictePermanentId) {
     const trimmedId = aictePermanentId.trim();
-    const instById = await Institution.findOne({ aictePermanentId: trimmedId });
+
+    const instById = await Institution.findOne({
+      aictePermanentId: trimmedId,
+    });
+
     if (instById) {
       return {
         institution: instById,
@@ -52,12 +52,23 @@ export const matchInstitution = async (input) => {
     };
   }
 
-  // 2. Exact normalised name + city match
+  // 2. Exact normalized name + city + state match
   if (normCity) {
-    const candidatesByName = await Institution.find({ normalizedName: normName });
-    const exactCityMatch = candidatesByName.find(
-      (inst) => normalizeCity(inst.city) === normCity
-    );
+    const candidatesByName = await Institution.find({
+      normalizedName: normName,
+    });
+
+    const exactCityMatch = candidatesByName.find((inst) => {
+      const cityMatches = normalizeCity(inst.city) === normCity;
+
+      const stateMatches =
+        !rawState ||
+        String(inst.state || '').trim().toLowerCase() ===
+          rawState.trim().toLowerCase();
+
+      return cityMatches && stateMatches;
+    });
+
     if (exactCityMatch) {
       return {
         institution: exactCityMatch,
@@ -67,30 +78,57 @@ export const matchInstitution = async (input) => {
     }
   }
 
-  // 3. Fuzzy match using Fuse.js restricted to state/district/city if available
-  // Filter master institutions by state/region if specified to reduce noise
-  let query = {};
+  // 3. Restrict fuzzy matching by supplied state
+  const query = {};
+
   if (rawState) {
-    query.state = new RegExp(`^${rawState.trim()}$`, 'i');
+    query.state = new RegExp(
+      `^${rawState.trim()}$`,
+      'i'
+    );
   }
 
   let candidates = await Institution.find(query);
-  if (candidates.length === 0) {
-    candidates = await Institution.find();
+
+  // Never search other states if the supplied state has no match.
+  if (candidates.length === 0 && rawState) {
+    return {
+      institution: null,
+      matchStatus: 'unmatched',
+      matchScore: 0,
+      candidates: [],
+    };
   }
 
+  // 4. Restrict candidates to the supplied city when available.
+  if (normCity) {
+    candidates = candidates.filter(
+      (inst) => normalizeCity(inst.city) === normCity
+    );
+  }
+
+  if (candidates.length === 0) {
+    return {
+      institution: null,
+      matchStatus: 'unmatched',
+      matchScore: 0,
+      candidates: [],
+    };
+  }
+
+  // 5. Fuzzy name matching
   const fuse = new Fuse(candidates, {
     keys: ['normalizedName', 'name'],
     includeScore: true,
-    threshold: 0.45, // Fuse score 0 = perfect match, 1 = mismatch
+    threshold: 0.45,
   });
 
   const results = fuse.search(normName);
 
-  if (results && results.length > 0) {
+  if (results.length > 0) {
     const best = results[0];
     const item = best.item;
-    // Base score: 100 - (fuseScore * 100)
+
     let score = Math.round((1 - best.score) * 100);
 
     // City bonus
@@ -98,12 +136,15 @@ export const matchInstitution = async (input) => {
       score = Math.min(100, score + 8);
     }
 
-    // Pincode bonus per SPEC
-    if (rawPincode && item.pincode && rawPincode.trim() === item.pincode.trim()) {
+    // Pincode bonus
+    if (
+      rawPincode &&
+      item.pincode &&
+      rawPincode.trim() === item.pincode.trim()
+    ) {
       score = Math.min(100, score + 5);
     }
 
-    // Prepare candidate list for review queue
     const topCandidates = results.slice(0, 5).map((r) => ({
       institution: r.item,
       score: Math.round((1 - r.score) * 100),
@@ -116,9 +157,11 @@ export const matchInstitution = async (input) => {
         matchScore: score,
         candidates: topCandidates,
       };
-    } else if (score >= MATCH_THRESHOLDS.REVIEW_QUEUE) {
+    }
+
+    if (score >= MATCH_THRESHOLDS.REVIEW_QUEUE) {
       return {
-        institution: item, // Suggested top candidate
+        institution: item,
         matchStatus: 'review',
         matchScore: score,
         candidates: topCandidates,

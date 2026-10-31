@@ -318,15 +318,16 @@ export const assignCase = async (req, res, next) => {
 
     // Notify the bureau
     await createOrUpdateAlert({
-      alertType: 'pending_reminder',
-      caseId: c._id,
-      institutionId: c.institution,
-      message: `New Case Assigned: Docket ${c.caseId} assigned to ${bureau.name}.`,
-      severity: 'medium',
-      targetRoles: ['bureau_officer'],
-      bureauId: bureau._id,
-      assignedOfficerId: assignedOfficerId || undefined,
-    });
+    alertType: 'pending_reminder',
+    caseId: c._id,
+    institutionId: c.institution,
+    message: `New Case Assigned: Docket ${c.caseId} assigned to ${bureau.name}.`,
+    severity: 'medium',
+    targetRoles: ['bureau_officer'],
+    bureauId: bureau._id,
+    assignedOfficerId: assignedOfficerId || undefined,
+    notifyOnUpdate: true,
+  });
 
     if (c.institution) {
       await checkInstitutionOverlap(c.institution);
@@ -1022,7 +1023,7 @@ export const replyStudentCase = async (req, res, next) => {
       timestamp: new Date(),
     });
 
-    // Notify bureau if assigned
+        // Notify bureau if assigned
     if (c.currentBureau) {
       await createOrUpdateAlert({
         alertType: 'pending_reminder',
@@ -1032,6 +1033,7 @@ export const replyStudentCase = async (req, res, next) => {
         severity: 'medium',
         targetRoles: ['bureau_officer'],
         bureauId: c.currentBureau,
+        notifyOnUpdate: true,
       });
     }
 
@@ -1043,25 +1045,4 @@ export const replyStudentCase = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-};
-
-export default {
-  getCases,
-  getCaseById,
-  getCaseHistory,
-  assignCase,
-  escalateCase,
-  linkCases,
-  getBureauCases,
-  getBureauCaseById,
-  getBureauCaseHistory,
-  updateBureauCaseStatus,
-  addBureauCaseAction,
-  requestInfoFromStudent,
-  transferBureauCase,
-  escalateBureauCase,
-  getStudentCases,
-  getStudentCaseById,
-  createStudentCase,
-  replyStudentCase,
 };

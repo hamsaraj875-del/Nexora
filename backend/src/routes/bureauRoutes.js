@@ -1,3 +1,4 @@
+
 import { Router } from 'express';
 import {
   getBureauCases,
@@ -10,12 +11,16 @@ import {
   escalateBureauCase,
 } from '../controllers/caseController.js';
 import { getBureauDashboard } from '../controllers/dashboardController.js';
-import { getOverlaps } from '../controllers/overlapController.js';
 import {
   uploadBulkFile,
   runManualSync,
   uploadMiddleware,
 } from '../controllers/importSyncController.js';
+import {
+  getOverlaps,
+  getOverlapCaseReadOnly,
+  getOverlapExplanations,
+} from '../controllers/overlapController.js';
 import {
   getAlerts,
   markAlertAsRead,
@@ -54,6 +59,8 @@ router.get('/overlaps', (req, res, next) => {
   req.query.mine = 'true';
   return getOverlaps(req, res, next);
 });
+router.get('/overlaps/:id/explanations', getOverlapExplanations);
+router.get('/overlaps/cases/:caseId', getOverlapCaseReadOnly);
 
 // ============================================================================
 // IMPORT & DATA SYNC (bureau_officer & data_operator)

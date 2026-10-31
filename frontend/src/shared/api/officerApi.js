@@ -54,6 +54,12 @@ export const officerApi = {
     const res = await apiClient.get(`/officer/overlaps/${id}`);
     return res.data;
   },
+  getOverlapExplanations: async (id) => {
+  const res = await apiClient.get(
+    `/officer/overlaps/${id}/explanations`
+  );
+  return res.data;
+  },
   resolveOverlap: async (id, data) => {
     const res = await apiClient.post(`/officer/overlaps/${id}/resolve`, data);
     return res.data;

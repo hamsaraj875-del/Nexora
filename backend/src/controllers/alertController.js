@@ -1,36 +1,49 @@
-import { Alert } from '../models/Alert.js';
+
+import mongoose from 'mongoose';
 import { Notification } from '../models/Notification.js';
 
 export const getAlerts = async (req, res, next) => {
   try {
-    const userNotifications = await Notification.find({ user: req.user._id })
+    const userId = req.user._id;
+
+    const notifications = await Notification.find({ user: userId })
       .populate({
         path: 'alert',
         populate: [
-          { path: 'case', select: 'caseId rawInstitutionName category status' },
-          { path: 'institution', select: 'name city region aictePermanentId' },
-          { path: 'overlapGroup' },
+          {
+            path: 'case',
+            select: 'caseId rawInstitutionName category status expectedDisposalDate receivedDate',
+          },
+          {
+            path: 'institution',
+            select: 'name city region aictePermanentId',
+          },
+          {
+            path: 'overlapGroup',
+            select: 'status severity overlapType reason institution',
+          },
         ],
       })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
 
     const unreadCount = await Notification.countDocuments({
-      user: req.user._id,
+      user: userId,
       isRead: false,
     });
 
-    const formatted = userNotifications.map((n) => ({
-      notificationId: n._id,
-      isRead: n.isRead,
-      createdAt: n.createdAt,
-      alert: n.alert,
+    const data = notifications.map((notification) => ({
+      notificationId: notification._id,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
+      alert: notification.alert || null,
     }));
 
     res.json({
       success: true,
       unreadCount,
-      data: formatted,
+      data,
     });
   } catch (error) {
     next(error);
@@ -40,18 +53,35 @@ export const getAlerts = async (req, res, next) => {
 export const markAlertAsRead = async (req, res, next) => {
   try {
     const { id } = req.params;
-    // id can be notification ID or alert ID
-    let notif = await Notification.findOne({
-      user: req.user._id,
-      $or: [{ _id: id }, { alert: id }],
-    });
 
-    if (notif) {
-      notif.isRead = true;
-      await notif.save();
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid notification ID',
+      });
     }
 
-    res.json({ success: true, message: 'Notification marked as read' });
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: id,
+        user: req.user._id,
+      },
+      { isRead: true },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Notification marked as read',
+      data: notification,
+    });
   } catch (error) {
     next(error);
   }
@@ -59,7 +89,9 @@ export const markAlertAsRead = async (req, res, next) => {
 
 export const getStudentNotifications = async (req, res, next) => {
   try {
-    const notifications = await Notification.find({ user: req.user._id })
+    const notifications = await Notification.find({
+      user: req.user._id,
+    })
       .populate('alert')
       .sort({ createdAt: -1 })
       .limit(30);

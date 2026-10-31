@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
+import { BureauOverlapCaseDetailPage } from './portals/bureau/pages/BureauOverlapCaseDetailPage';
 import { ProtectedRoute } from './shared/components/ProtectedRoute';
 import { Loader2 } from 'lucide-react';
 
@@ -109,6 +110,7 @@ export function App() {
                     <Route path="cases/:id" element={<BureauCaseDetailPage />} />
                     <Route path="attention" element={<BureauAttentionPage />} />
                     <Route path="overlaps" element={<BureauOverlapsPage />} />
+                    <Route path="overlaps/cases/:id" element={<BureauOverlapCaseDetailPage />} />
                     <Route path="imports" element={<BureauImportsPage />} />
                     <Route path="match-review" element={<OfficerMatchReviewPage />} />
                     <Route path="alerts" element={<BureauAlertsPage />} />

@@ -182,16 +182,33 @@ export function OfficerMatchReviewPage() {
                     </div>
                   </div>
 
-                  {item.suggestedInstitution && (
+                  {item.suggestedInstitution ? (
                     <div className="p-2.5 rounded-lg bg-[#0B1730] border border-slate-700/80 text-xs">
                       <span className="text-[10px] text-blue-400 uppercase font-bold flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
                         Suggested AICTE Master Registry Match:
                       </span>
-                      <div className="font-semibold text-white mt-0.5">{item.suggestedInstitution.name}</div>
-                      <div className="text-[10px] text-slate-400">
-                        AICTE Permanent ID: <span className="font-mono text-slate-200">{item.suggestedInstitution.aictePermanentId}</span> &bull; Region: {item.suggestedInstitution.region || 'N/A'} &bull; City: {item.suggestedInstitution.city}
+
+                      <div className="font-semibold text-white mt-0.5">
+                        {item.suggestedInstitution.name}
                       </div>
+
+                      <div className="text-[10px] text-slate-400">
+                        AICTE Permanent ID: {item.suggestedInstitution.aictePermanentId}
+                        &bull; Region: {item.suggestedInstitution.region || 'N/A'}
+                        &bull; City: {item.suggestedInstitution.city || 'N/A'}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                      <div className="flex items-center gap-2 text-amber-300 text-xs font-semibold">
+                        <AlertCircle className="w-4 h-4" />
+                        No reliable match found
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        No institution meets the matching criteria. Manual verification
+                        against the AICTE Master Registry is required.
+                      </p>
                     </div>
                   )}
                 </div>
